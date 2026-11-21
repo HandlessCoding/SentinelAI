@@ -201,7 +201,8 @@ class ExactGroupCounter:
                 path.unlink()
             self._levels.clear()
         else:
-            groups = ((key, *counts) for key, counts in self._chunk.items())
+            keys = sorted(self._chunk) if on_group is not None else self._chunk
+            groups = ((key, *self._chunk[key]) for key in keys)
             self._result = _summarize(groups, on_group)
             self._chunk.clear()
             self._chunk_bytes = 0
