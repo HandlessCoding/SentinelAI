@@ -1,6 +1,6 @@
 """Count exact duplicate groups by sorting bounded chunks on local disk."""
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import ExitStack
 from dataclasses import dataclass
 from heapq import merge
@@ -78,11 +78,16 @@ def _combine_runs(paths: Iterable[Path]) -> Iterator[CountedKey]:
             yield previous_key, total, normal, attack
 
 
-def _summarize(groups: Iterable[CountedKey]) -> GroupSummary:
+def _summarize(
+    groups: Iterable[CountedKey], on_group: Callable[[CountedKey], None] | None
+) -> GroupSummary:
     rows = distinct_groups = duplicate_groups = duplicate_rows = 0
     conflicting_groups = conflicting_rows = conflicting_normal_rows = conflicting_attack_rows = 0
     max_group_size = 0
-    for _, total, normal, attack in groups:
+    for group in groups:
+        if on_group is not None:
+            on_group(group)
+        _, total, normal, attack = group
         rows += total
         distinct_groups += 1
         max_group_size = max(max_group_size, total)
@@ -179,8 +184,8 @@ class ExactGroupCounter:
         total, normal, attack = existing
         self._chunk[key] = (total + 1, normal + (label == 0), attack + (label == 1))
 
-    def finish(self) -> GroupSummary:
-        """Return the complete summary and release counted keys and scratch runs."""
+    def finish(self, *, on_group: Callable[[CountedKey], None] | None = None) -> GroupSummary:
+        """Return the summary and release keys, visiting each group on the first call."""
         self._require_open()
         if self._result is not None:
             return self._result
@@ -191,14 +196,13 @@ class ExactGroupCounter:
             while len(runs) > self._merge_fan_in:
                 compacted = self._compact(runs[:self._merge_fan_in])
                 runs = runs[self._merge_fan_in:] + [compacted]
-            self._result = _summarize(_combine_runs(runs))
+            self._result = _summarize(_combine_runs(runs), on_group)
             for path in runs:
                 path.unlink()
             self._levels.clear()
         else:
-            self._result = _summarize(
-                (key, *counts) for key, counts in self._chunk.items()
-            )
+            groups = ((key, *counts) for key, counts in self._chunk.items())
+            self._result = _summarize(groups, on_group)
             self._chunk.clear()
             self._chunk_bytes = 0
         return self._result
