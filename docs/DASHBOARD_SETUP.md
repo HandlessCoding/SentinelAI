@@ -1,4 +1,4 @@
-# G8 React dashboard
+# SentinelAI dashboard
 
 ## Run locally
 
@@ -46,11 +46,12 @@ credentials are handled by FastAPI.
 - **Analyst Notes** displays the selected incident's notes and accepts an
   analyst name and note. The analyst name is entered by the user in this
   local workflow.
-- **Analyze** accepts pasted or imported JSON as either a `records` object
-  or an array containing 1–100 prepared UNSW-NB15 records. **Preview
-  predictions** uses `/predict` for scores without saving. **Analyze and
-  save alerts** uses `/analyze` and shows the backend receipt. Retrying the
-  same records within the page reuses the submission's idempotency key.
+- **Analyze** offers **Manual JSON** and **CSV upload**. Manual JSON accepts
+  pasted or imported JSON as either a `records` object or an array containing
+  1–100 prepared UNSW-NB15 records. **Preview predictions** uses `/predict`
+  for scores without saving. **Analyze and save alerts** uses `/analyze` and
+  shows the backend receipt. Retrying unchanged manual inputs within the page
+  reuses the submission's idempotency key.
 
 To demonstrate, select **Load synthetic example**, preview the three
 records, then save and open one of the returned alert links. Create an
@@ -63,6 +64,36 @@ those saved alerts.
 The connection indicator reflects API health. A database request can
 still fail independently and will display its own error on the affected
 page. Refresh the dashboard after restoring the local service.
+
+## Upload and analyze CSV
+
+1. In **Analyze**, select **CSV upload**. Choose or drop a CSV file. For a
+   demonstration, use [the bundled synthetic CSV](../examples/unsw_nb15_inference.csv).
+2. Review the validated record preview before selecting **Analyze CSV**.
+   The dashboard scores each batch in order and reports progress by records
+   completed. Review the total, normal, and suspected-attack counts, and
+   inspect a record to see its features and attack probability.
+3. Select **Save suspected alerts** to send the validated batches through
+   the existing alert-management endpoint. Open a returned alert link to
+   review the stored detection.
+
+The upload accepts one comma-separated UTF-8 file with a header, up to
+**2 MiB and 1,000 records**. Column order is flexible. All 42 model features
+are required. The server ignores optional `id`, `label`, and `attack_cat`
+columns, validates each record using the inference schema, and rejects
+the upload before scoring if its CSV, columns, or values are invalid.
+See the [prediction contract](MODEL_PACKAGING.md#prediction-contract).
+
+`POST /csv/preview` takes the CSV as a raw `text/csv` request body.
+It returns validated predictors and the scoring batch limit (currently
+100). The preview step performs validation without fitting or scoring a
+model. The dashboard calls `/predict` for scores and `/analyze` only when
+the user chooses to save. Each save request is transactional for its batch.
+If a later batch fails, successful batches remain saved and the upload can
+be retried. Retry keys derive from the ordered predictor records and batch
+position. Re-uploading the same records, even after a reload, reuses the
+existing receipts. Changing predictor values or record order creates a
+different submission.
 
 ## Build and test
 
@@ -80,6 +111,7 @@ From the repository root with the saved model and test database configured:
 ```
 
 The frontend suite covers backend errors and recovery, statistics, search
-and filters, paging, request validation, idempotency, and investigation
-actions. This dashboard operates on prepared feature records through the
-local API.
+and filters, paging, request validation, idempotency, investigation actions,
+and CSV workflows. Python tests cover CSV validation and limits using
+synthetic records. This dashboard operates on prepared feature records
+through the local API.

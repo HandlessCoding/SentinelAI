@@ -9,6 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 
+from backend.csv_uploads import router as csv_router
 from backend.database import DatabaseConfigurationError
 from backend.investigations import router as investigation_router
 from backend.routes import router
@@ -58,6 +59,7 @@ def create_app(model_loader=load_local_model):
 
     app.include_router(router)
     app.include_router(investigation_router)
+    app.include_router(csv_router)
     return app
 
 

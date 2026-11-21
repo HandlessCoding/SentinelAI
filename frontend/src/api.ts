@@ -54,9 +54,16 @@ export interface Receipt {
   alert_ids: string[]
 }
 
+export interface PreparedCsv {
+  columns: string[]
+  records: Record<string, string>[]
+  upload_id: string
+  batch_size: number
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers)
-  if (options.body) headers.set('Content-Type', 'application/json')
+  if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
   const response = await fetch('/api' + path, { ...options, headers })
   const body = await response.json().catch(() => null)
   if (!response.ok) {
@@ -87,11 +94,15 @@ export const api = {
     request<Incident>('/incidents/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(body) }),
   addNote: (id: string, body: { author: string; text: string }) =>
     request<Note>('/incidents/' + encodeURIComponent(id) + '/notes', { method: 'POST', body: JSON.stringify(body) }),
-  predict: (records: NetworkRecord[]) =>
-    request<PredictionBatch>('/predict', { method: 'POST', body: JSON.stringify({ records }) }),
-  analyze: (records: NetworkRecord[], key: string) =>
+  previewCsv: (file: File, signal?: AbortSignal) =>
+    request<PreparedCsv>('/csv/preview', {
+      method: 'POST', headers: { 'Content-Type': 'text/csv' }, body: file, signal,
+    }),
+  predict: (records: NetworkRecord[], signal?: AbortSignal) =>
+    request<PredictionBatch>('/predict', { method: 'POST', body: JSON.stringify({ records }), signal }),
+  analyze: (records: NetworkRecord[], key: string, signal?: AbortSignal) =>
     request<Receipt>('/analyze', {
-      method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ records }),
+      method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ records }), signal,
     }),
 }
 

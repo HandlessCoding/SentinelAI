@@ -89,7 +89,7 @@ def feature_schema():
     return [{"name": name, "type": kind} for name, kind in FEATURE_TYPES.items()]
 
 
-def validate_columns(columns):
+def validate_columns(columns, *, include_unexpected_names=True):
     """Accept all predictors and only the three known optional metadata fields."""
     keys = set(columns)
     if any(not isinstance(name, str) or not name.strip() for name in keys):
@@ -102,7 +102,10 @@ def validate_columns(columns):
     if missing:
         issues.append(f"missing columns: {', '.join(sorted(missing))}")
     if unexpected:
-        issues.append(f"unexpected columns: {', '.join(sorted(unexpected))}")
+        if include_unexpected_names:
+            issues.append(f"unexpected columns: {', '.join(sorted(unexpected))}")
+        else:
+            issues.append(f"unexpected columns: remove the {len(unexpected)} unrecognized headers")
     if issues:
         raise InputValidationError(" | ".join(issues))
 
@@ -228,19 +231,24 @@ def load_model(trusted_directory=DEFAULT_ARTIFACT_DIR):
     return InferenceModel(metadata["model_version"], metadata["decision_threshold"], pipeline)
 
 
+def read_prediction_rows(lines, *, include_unexpected_names=True):
+    """Parse predictor records from a decoded CSV stream."""
+    reader = csv.reader(lines, strict=True)
+    try:
+        header = next(reader, [])
+        validate_columns(header, include_unexpected_names=include_unexpected_names)
+        for row in read_rows(reader, header):
+            yield dict(zip(header, row))
+    except InputValidationError:
+        raise
+    except (ValueError, csv.Error) as error:
+        raise InputValidationError(f"Invalid CSV near line {reader.line_num}: {error}") from error
+
+
 def read_prediction_csv(path):
-    """Read strict CSV rows and reject malformed widths or duplicate headers."""
+    """Read prediction records from a UTF-8 CSV on disk."""
     with path.open(encoding="utf-8-sig", newline="") as file:
-        reader = csv.reader(file, strict=True)
-        try:
-            header = next(reader, [])
-            validate_columns(header)
-            for row in read_rows(reader, header):
-                yield dict(zip(header, row))
-        except InputValidationError:
-            raise
-        except (ValueError, csv.Error) as error:
-            raise InputValidationError(f"Invalid CSV near line {reader.line_num}: {error}") from error
+        yield from read_prediction_rows(file)
 
 
 def main(argv=None):
