@@ -40,3 +40,8 @@ own temporary CSV fixtures.
 
 See the [model packaging guide](docs/MODEL_PACKAGING.md) to train the selected
 48-tree Random Forest, create its local package, and score the synthetic CSV.
+
+## G8 dashboard
+
+The [dashboard setup guide](docs/DASHBOARD_SETUP.md) shows how to run React,
+FastAPI, and PostgreSQL together and demonstrate the local analyst workflow.

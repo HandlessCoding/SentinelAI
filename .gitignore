@@ -162,6 +162,8 @@ venv.bak/
 # Local datasets and trained models
 /data/
 /artifacts/
+/frontend/node_modules/
+/frontend/dist/
 
 # Conda environments
 conda-meta/
