@@ -5,6 +5,9 @@ detection and incident management. It scores prepared UNSW-NB15
 network-flow records with a binary classifier and lets an analyst turn
 suspected attacks into investigations with notes. [UNSW-NB15 dataset](https://research.unsw.edu.au/projects/unsw-nb15-dataset)
 
+[Documentation](docs/README.md) · [Lab guide](docs/LAB_GUIDE.md) ·
+[Research archive](docs/research/README.md) · [Roadmap](docs/ROADMAP.md)
+
 ## What Level 1 delivers
 
 - A React dashboard with detection statistics, alert filtering and
@@ -17,6 +20,15 @@ suspected attacks into investigations with notes. [UNSW-NB15 dataset](https://re
 - Local PostgreSQL storage for prediction batches, alerts, incidents, and
   notes. Transactional writes and idempotent batch retries prevent duplicate
   alerts when the same submission is retried.
+
+## Level 2 research status
+
+The controlled lab verifies isolation, records authorized traffic, and extracts
+Zeek-native flow features with pinned capture and labeling evidence. G27 verified
+four benign sessions, 266 packets, and 16 labeled flows across one VM pair.
+The lab is experimental and runs separately from the dashboard. Independent
+device and environment validation is still needed before fitting a Level 2
+model. [G27 results](docs/research/lab/LEVEL_2_G27_BENIGN_COLLECTION.md)
 
 ## Architecture and technologies
 
@@ -67,6 +79,7 @@ git clone https://github.com/HandlessCoding/SentinelAI.git
 Set-Location SentinelAI
 py -3.12 --version
 py -3.12 -m venv .venv
+& .\.venv\Scripts\python.exe -B -m pip install --only-binary=:all: pip==26.3
 & .\.venv\Scripts\python.exe -B -m pip install --only-binary=:all: -r ml/requirements-baseline.txt -r backend/requirements.txt
 ```
 
@@ -173,11 +186,12 @@ npm.cmd test
 npm.cmd run build
 ```
 
-The Level 1 verification passed **71 Python tests and 22 frontend tests**,
-and the production build succeeded. PostgreSQL integration tests migrate
-fresh schemas inside the test database. Synthetic fixtures cover inference
-and application workflows. The datasets, local credentials, fitted model,
-virtual environment, and build output are Git-ignored. [Reliability testing](docs/RELIABILITY_TESTING.md)
+PostgreSQL integration tests migrate fresh schemas inside the dedicated test
+database. Synthetic fixtures do not require dataset CSVs. The real-Zeek test
+requires the Linux sensor, and local recorded-capture tests use opt-in
+paths. Datasets, local credentials, fitted models, captures, and VM images
+are Git-ignored. [Test scope](docs/RELIABILITY_TESTING.md) ·
+[Latest engineering verification](docs/G27_5_ENGINEERING_REVIEW.md#verification)
 
 ## Project materials
 
@@ -187,4 +201,4 @@ virtual environment, and build output are Git-ignored. [Reliability testing](doc
 | [Technical report](docs/TECHNICAL_REPORT.md) | Research, methods, implementation, results, and limitations |
 | [Architecture](docs/ARCHITECTURE.md) | Component diagrams and analyst workflow |
 | [Presentation and demo](docs/PRESENTATION_AND_DEMO.md) | Suggested talk, live walkthrough, and fallback |
-| [Level 2 roadmap](docs/LEVEL_2_ROADMAP.md) | Planned datasets, multiclass detection, explainability, Rust ingestion, and network-log integration |
+| [Project status and roadmap](docs/ROADMAP.md) | Implemented capabilities, proposed G28 work, and planned Level 2 features |

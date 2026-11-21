@@ -17,7 +17,7 @@ class MockedBackendTests(unittest.TestCase):
         self.attack = {"label": 1, "classification": "attack", "attack_probability": 0.8}
         self.model.predict.side_effect = lambda records: [self.attack for _ in records]
         self.loader = Mock(return_value=self.model)
-        self.client = self.enterContext(TestClient(create_app(self.loader)))
+        self.client = self.enterContext(TestClient(create_app(self.loader), base_url="http://127.0.0.1"))
 
     def test_health_model_info_and_predictions_share_one_startup_load(self):
         self.assertEqual(self.client.get("/health").json(), {"status": "ok"})
@@ -93,7 +93,7 @@ class RealBackendTests(unittest.TestCase):
     def test_startup_fails_when_the_configured_artifact_cannot_be_loaded(self):
         unavailable = Mock(side_effect=ArtifactError("package unavailable"))
         with self.assertRaises(ArtifactError):
-            with TestClient(create_app(unavailable)):
+            with TestClient(create_app(unavailable), base_url="http://127.0.0.1"):
                 self.fail("App should only start after loading the model")
         unavailable.assert_called_once_with()
 

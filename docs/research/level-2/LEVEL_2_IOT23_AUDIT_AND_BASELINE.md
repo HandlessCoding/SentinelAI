@@ -117,7 +117,7 @@ records, and original-group-scoped UIDs. It reports aggregate
 counts without printing raw flow rows. Matching start keys
 need provenance review. Time-separated repeated vectors or
 tuples by themselves do not prove shared sessions.
-[Audit CLI](../ml/audit_iot23_captures.py) · [Synthetic fixtures](../tests/test_iot23_capture_audit.py)
+[Audit CLI](../../../ml/audit_iot23_captures.py) · [Synthetic fixtures](../../../tests/test_iot23_capture_audit.py)
 
 The first candidate contract uses TCP/UDP protocol, native
 Zeek duration, originator and responder packet totals, and

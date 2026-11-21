@@ -15,11 +15,11 @@ reviewable benign traffic, incomplete device lineage, and many different labels
 on otherwise identical vectors. G25 preserves scenario evidence and recording
 boundaries at collection time. It keeps provenance checks distinct from model
 metrics and leaves Level 1 and the reserved NF-CSE-CIC-IDS2018 benchmark outside
-the lab workflow. [G13 data strategy](LEVEL_2_DATA_STRATEGY.md) ·
-[G17 provenance](LEVEL_2_PROVENANCE_AND_DATA.md) ·
-[G19 chronological preflight](LEVEL_2_CHRONOLOGICAL_BASELINE.md) ·
-[G20 capture validation design](LEVEL_2_CAPTURE_DATA_STRATEGY.md) ·
-[G24 reconciliation](LEVEL_2_IOT23_CAPTURE_RECONCILIATION.md)
+the lab workflow. [G13 data strategy](../level-2/LEVEL_2_DATA_STRATEGY.md) ·
+[G17 provenance](../level-2/LEVEL_2_PROVENANCE_AND_DATA.md) ·
+[G19 chronological preflight](../level-2/LEVEL_2_CHRONOLOGICAL_BASELINE.md) ·
+[G20 capture validation design](../level-2/LEVEL_2_CAPTURE_DATA_STRATEGY.md) ·
+[G24 reconciliation](../level-2/LEVEL_2_IOT23_CAPTURE_RECONCILIATION.md)
 
 ## Host assessment and proposed architecture
 
@@ -225,7 +225,7 @@ at least 50% retained coverage by class and by attack category with at least
 100 labeled source rows, and two validation attack sessions. Independent human
 review still resolves capture dependencies, reviews coverage of lost or unknown
 flows, and checks whether the cohort can support meaningful FPR and recall.
-[Prespecified G20 feasibility rules](LEVEL_2_CAPTURE_DATA_STRATEGY.md#feasibility-gates-before-fitting)
+[Prespecified G20 feasibility rules](../level-2/LEVEL_2_CAPTURE_DATA_STRATEGY.md#feasibility-gates-before-fitting)
 
 In a later evaluation, report attack recall and false-positive rate per capture
 with denominators, along with balanced accuracy, precision, and unknown or

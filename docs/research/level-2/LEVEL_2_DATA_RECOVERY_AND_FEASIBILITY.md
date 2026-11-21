@@ -178,7 +178,7 @@ the gates. Calibration and cutoff selection use their designated
 development captures. Final development validation stays untouched
 by model and operating-point selection. No benchmark or live-network
 performance can be inferred from this milestone.
-[Audit implementation](../ml/audit_iot23_captures.py) · [G20 feasibility gates](LEVEL_2_CAPTURE_DATA_STRATEGY.md#feasibility-gates-before-fitting)
+[Audit implementation](../../../ml/audit_iot23_captures.py) · [G20 feasibility gates](LEVEL_2_CAPTURE_DATA_STRATEGY.md#feasibility-gates-before-fitting)
 
 ## Controlled-lab alternative
 

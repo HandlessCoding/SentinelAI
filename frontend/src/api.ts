@@ -82,8 +82,10 @@ export const api = {
     const limit = 100
     for (let offset = 0; ; offset += limit) {
       const page = await request<Alert[]>(`/alerts?limit=${limit}&offset=${offset}`, { signal })
+      const previousCount = alerts.size
       for (const alert of page) alerts.set(alert.id, alert)
       if (page.length < limit) return [...alerts.values()]
+      if (alerts.size === previousCount) throw new Error('Alert pages stopped advancing. Refresh to try again.')
     }
   },
   alert: (id: string, signal?: AbortSignal) => request<Alert>('/alerts/' + encodeURIComponent(id), { signal }),

@@ -25,7 +25,7 @@ fingerprint in the artifact manifest. G6–G9 used saved-model inference
 with synthetic fixtures for verification. The reviewed history shows
 no test-partition use for training, tuning, or selection. This finding
 covers the recorded project work.
-[G1 dataset analysis](DATASET_ANALYSIS.md) · [G4 model comparison](MODEL_COMPARISON.md) · [G5 model packaging](MODEL_PACKAGING.md)
+[G1 dataset analysis](research/level-1/DATASET_ANALYSIS.md) · [G4 model comparison](research/level-1/MODEL_COMPARISON.md) · [G5 model packaging](MODEL_PACKAGING.md)
 
 ## Reproduce the evaluation
 
@@ -64,7 +64,7 @@ scikit-learn 1.7.2, NumPy 2.2.6,
 SciPy 1.15.3, joblib 1.5.2, and
 threadpoolctl 3.6.0.
 
-For comparison, the [G4 training-only results](MODEL_COMPARISON.md#default-threshold-comparison)
+For comparison, the [G4 training-only results](research/level-1/MODEL_COMPARISON.md#default-threshold-comparison)
 pool three group-aware outer validation folds at the same 0.5 threshold.
 Identical raw predictors stayed together within the G4 split design. The
 G4 scores came from fold-specific fits on subsets of the training file.

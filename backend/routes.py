@@ -1,9 +1,8 @@
 """Local health, model metadata, and prediction endpoints."""
 
-import logging
+from fastapi import APIRouter, Request
 
-from fastapi import APIRouter, HTTPException, Request
-
+from backend.batch_processing import predict_records
 from backend.request_limits import JSONRequestRoute
 from backend.schemas import (
     ErrorResponse,
@@ -12,11 +11,10 @@ from backend.schemas import (
     PredictRequest,
     PredictResponse,
 )
-from ml.inference import FEATURE_TYPES, InputValidationError
+from ml.inference import FEATURE_TYPES
 
 
 router = APIRouter(route_class=JSONRequestRoute)
-logger = logging.getLogger(__name__)
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -53,16 +51,3 @@ def predict(batch: PredictRequest, request: Request):
         "decision_threshold": model.decision_threshold,
         "predictions": predict_records(model, batch.records),
     }
-
-
-def predict_records(model, records):
-    """Share the inference call and sanitized errors between both batch routes."""
-    try:
-        return model.predict(records)
-    except InputValidationError:
-        raise HTTPException(
-            status_code=422, detail="Records must match the expected UNSW-NB15 feature schema."
-        ) from None
-    except Exception as error:
-        logger.error("Prediction failed (%s)", type(error).__name__)
-        raise HTTPException(status_code=500, detail="Prediction failed.") from None

@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import ClientDisconnect
 
-from backend.investigations import request_digest
+from backend.batch_processing import request_digest
+from backend.request_limits import validate_body_headers
 from backend.schemas import ErrorResponse, MAX_BATCH_SIZE
 from ml.inference import (
     FEATURE_TYPES, InputValidationError, read_prediction_rows, validated_batch,
@@ -80,20 +81,11 @@ def prepare_csv(payload: bytearray) -> CSVPreview:
 )
 async def preview_csv(request: Request):
     """Prepare UTF-8 CSV records without running the model or writing to the database."""
-    media_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
-    encoding = request.headers.get("content-encoding", "identity").strip().lower()
-    if media_type != "text/csv" or encoding != "identity":
-        raise HTTPException(status_code=415, detail="Send an uncompressed CSV with Content-Type text/csv.")
-    length = request.headers.get("content-length")
-    if length is not None:
-        try:
-            declared_size = int(length)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid upload length.") from None
-        if declared_size < 0:
-            raise HTTPException(status_code=400, detail="Invalid upload length.")
-        if declared_size > MAX_CSV_BYTES:
-            raise HTTPException(status_code=413, detail=SIZE_ERROR)
+    validate_body_headers(
+        request, media_type="text/csv", max_bytes=MAX_CSV_BYTES,
+        media_error="Send an uncompressed CSV with Content-Type text/csv.",
+        length_error="Invalid upload length.", size_error=SIZE_ERROR,
+    )
 
     payload = bytearray()
     try:

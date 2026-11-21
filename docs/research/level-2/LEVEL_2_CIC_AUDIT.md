@@ -46,7 +46,7 @@ support. The overlap audit counts affected rows separately on each
 side of a proposed boundary. It checks timestamp parsing, day
 membership, file-order backsteps and duration-derived clock spans.
 The JSON contains aggregates and headers, with no raw flows or endpoint
-values. [Audit runner](../ml/audit_cic_release.py) · [Exact grouping](../ml/level2_audit_storage.py)
+values. [Audit runner](../../../ml/audit_cic_release.py) · [Exact grouping](../../../ml/level2_audit_storage.py)
 
 ## Full audit results
 
@@ -155,7 +155,7 @@ semantics. The initial contract also excludes derived rates and
 topology-dependent fields. Consider selected native TCP count features
 only as a subsequent documented ablation. A count is distinct from
 the cumulative flag masks used in the nProbe experiments.
-[CIC header definitions](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/FlowFeature.java) · [CIC packet extraction](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/PacketReader.java) · [CIC byte and duration code](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/BasicFlow.java) · [Zeek connection fields](https://docs.zeek.org/en/current/scripts/base/protocols/conn/main.zeek.html#type-Conn::Info) · [Native adapter](../ml/level2_provenance.py)
+[CIC header definitions](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/FlowFeature.java) · [CIC packet extraction](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/PacketReader.java) · [CIC byte and duration code](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/BasicFlow.java) · [Zeek connection fields](https://docs.zeek.org/en/current/scripts/base/protocols/conn/main.zeek.html#type-Conn::Info) · [Native adapter](../../../ml/level2_provenance.py)
 
 Keep `id`, `Flow ID`, addresses, ports, timestamps, capture day,
 labels and attempted markers outside the predictor matrix. The source
@@ -214,7 +214,7 @@ support collapses or session linkage remains unverified, restrict the
 result to an explicitly exploratory within-campaign pilot or obtain
 an independently documented development capture with a compatible
 exporter.
-[Capture preflight](../ml/level2_provenance.py) · [G15 split planner](../ml/level2_splits.py)
+[Capture preflight](../../../ml/level2_provenance.py) · [G15 split planner](../../../ml/level2_splits.py)
 
 After a feasible split is demonstrated, start with a fixed-seed,
 group-complete sample and a target cap of 120,000 fitting rows.

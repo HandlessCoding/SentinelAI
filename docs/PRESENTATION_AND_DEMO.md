@@ -7,9 +7,9 @@
 | 0:00–0:50 | Problem and objective | Explain how SentinelAI turns prepared network-flow records into detections an analyst can investigate. |
 | 0:50–2:30 | Dataset and leakage prevention | Introduce the official training and test partitions. Explain how identical predictor vectors stayed together in validation and why label fields were excluded from the model inputs. |
 | 2:30–3:45 | System architecture | Trace a CSV through React, FastAPI, the saved Random Forest pipeline and PostgreSQL. Explain where analyst decisions enter the workflow. [Architecture diagrams](ARCHITECTURE.md) |
-| 3:45–5:30 | Model choice and evaluation | Explain why the 48-tree Random Forest was selected in G4 using training-only validation. Show the G4 and G10 results side by side. [Model comparison](MODEL_COMPARISON.md) · [Final evaluation](FINAL_MODEL_EVALUATION.md) |
+| 3:45–5:30 | Model choice and evaluation | Explain why the 48-tree Random Forest was selected in G4 using training-only validation. Show the G4 and G10 results side by side. [Model comparison](research/level-1/MODEL_COMPARISON.md) · [Final evaluation](FINAL_MODEL_EVALUATION.md) |
 | 5:30–10:30 | Live demonstration | Upload, preview and score a synthetic CSV. Save the suspected attacks, retry the submission, then open an investigation and add a note. |
-| 10:30–12:30 | Limitations and future work | Explain what the false-positive rate means for an analyst and why external validation comes before using the model on network logs. End with the scope of the completed Level 1 workflow. [Level 2 roadmap](LEVEL_2_ROADMAP.md) |
+| 10:30–12:30 | Limitations and future work | Explain what the false-positive rate means for an analyst and why external validation comes before using the model on network logs. End with the scope of the completed Level 1 workflow. [Level 2 roadmap](research/level-2/LEVEL_2_ROADMAP.md) |
 
 For a 10-minute slot, shorten the architecture and dataset sections and demonstrate retries verbally. With 15 minutes, use the remaining time for questions.
 
@@ -46,5 +46,5 @@ If the saving or note request fails during the presentation, show the on-screen 
 ## Questions to rehearse
 
 - **Why group identical predictors?** Row-level random splits could put indistinguishable inputs on both sides. Keeping them together makes internal validation a more demanding test. Conflicting-label groups stayed intact because their ambiguity is present in the benchmark.
-- **Why keep the threshold at 0.5?** G4 compared both models at their default thresholds and explored lower false-positive budgets using inner training splits. G5 froze the operating point before any official test scoring. Reusing G10 to choose a new cutoff would spend the test set on development. [Model comparison](MODEL_COMPARISON.md) · [Final evaluation](FINAL_MODEL_EVALUATION.md)
+- **Why keep the threshold at 0.5?** G4 compared both models at their default thresholds and explored lower false-positive budgets using inner training splits. G5 froze the operating point before any official test scoring. Reusing G10 to choose a new cutoff would spend the test set on development. [Model comparison](research/level-1/MODEL_COMPARISON.md) · [Final evaluation](FINAL_MODEL_EVALUATION.md)
 - **What did the test teach you?** High attack recall coexisted with a high false-positive rate. Fuzzers accounted for 285 of the 296 missed attack records. Misclassification rates and deployment alert volume need fresh evidence before use with live network data. [Final evaluation](FINAL_MODEL_EVALUATION.md)

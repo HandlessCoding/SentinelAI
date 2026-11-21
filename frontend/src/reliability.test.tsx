@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { Analyze } from './Analyze'
-import type { Alert } from './api'
+import { api, type Alert } from './api'
 import synthetic from './synthetic-records.json'
 
 const alert: Alert = {
@@ -48,6 +48,28 @@ function stubWorkspace(status = 200) {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+})
+
+describe('alert pagination', () => {
+  const fullPage = Array.from({ length: 100 }, (_, index) => ({ ...alert, id: String(index) }))
+
+  it('stops loading identical full pages', async () => {
+    const fetchPage = vi.fn(async () => json(fullPage))
+    vi.stubGlobal('fetch', fetchPage)
+    await expect(api.alerts()).rejects.toThrow('Alert pages stopped advancing')
+    expect(fetchPage).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps loading when the next page overlaps and contains new alerts', async () => {
+    const secondPage = Array.from({ length: 100 }, (_, index) => ({ ...alert, id: String(99 + index) }))
+    const fetchPage = vi.fn()
+      .mockResolvedValueOnce(json(fullPage))
+      .mockResolvedValueOnce(json(secondPage))
+      .mockResolvedValueOnce(json([{ ...alert, id: '199' }]))
+    vi.stubGlobal('fetch', fetchPage)
+    expect(await api.alerts()).toHaveLength(200)
+    expect(fetchPage).toHaveBeenCalledTimes(3)
+  })
 })
 
 describe('keyboard navigation', () => {

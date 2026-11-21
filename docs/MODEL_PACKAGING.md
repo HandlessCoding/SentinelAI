@@ -30,7 +30,7 @@ The provisional Level 1 model is `unsw-nb15-rf-v1`. Its package lives under
 | `metadata.json` | Artifact format and model versions, ordered feature schema, threshold and class mapping, training file identity and counts, parameters, runtime versions, and pipeline size and SHA-256 |
 
 The build processed **175,341 records** (56,000 normal and 119,341 attack)
-using the [G4 configuration](MODEL_COMPARISON.md). It used 48 trees, seed 42,
+using the [G4 configuration](research/level-1/MODEL_COMPARISON.md). It used 48 trees, seed 42,
 depth capped at 14, a maximum of 512 leaves per tree, minimum leaf size 5,
 bootstrap draws of 75% of the training count, and one worker. The fitted
 pipeline was **3,437,242 bytes** (3.28 MiB). The local fit took about 63 seconds.

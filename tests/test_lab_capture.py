@@ -44,6 +44,21 @@ class CaptureLabTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "checksum mismatch"):
             load_verified(self.root, "fixture")
 
+    def test_pins_original_evidence_even_without_a_reviewed_window(self):
+        source = self.root / "client-events.json"
+        write_new_object(source, {"events": ["fixture"]})
+        amended = {**self.spec, "capture_id": "pending", "windows": [],
+                   "evidence_files": [source.name]}
+        register(self.root, amended)
+        manifest, windows = load_verified(self.root, "pending")
+        self.assertEqual(windows, [])
+        self.assertEqual(manifest["sha256"]["evidence"], {source.name: digest(source)})
+        source.write_text("{}", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "checksum mismatch"):
+            load_verified(self.root, "pending")
+        legacy, _ = load_verified(self.root, "fixture")
+        self.assertNotIn("evidence_files", legacy["capture"])
+
     def test_unsafe_paths_unsupported_evidence_and_overlapping_windows_fail(self):
         spec = deepcopy(self.spec)
         spec.update(capture_id="another", pcap="../fixture.pcap")
