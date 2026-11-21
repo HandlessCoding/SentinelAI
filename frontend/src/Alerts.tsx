@@ -1,11 +1,11 @@
 import { Activity, Archive, BellRing, ChevronRight, CircleAlert, Filter, Search, ShieldAlert, X } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, incidentIds, type Alert, type AlertStatus } from './api'
 import { dateTime, percentage, shortId, State, Status, statuses, useResource } from './shared'
 
 export function AlertTable({ alerts }: { alerts: Alert[] }) {
   if (!alerts.length) return <State title="No alerts to show" />
-  return <div className="table-scroll"><table>
+  return <div className="table-scroll" role="region" aria-label="Alert table" tabIndex={0}><table>
     <thead><tr><th>Detection</th><th>Attack probability</th><th>Status</th><th>Detected</th><th aria-label="Details" /></tr></thead>
     <tbody>{alerts.map(alert => <tr key={alert.id}>
       <td><a className="alert-label" href={'#alerts/' + alert.id}>
@@ -96,8 +96,25 @@ export function Alerts({ alerts, selected, revision }: { alerts: Alert[]; select
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<AlertStatus | ''>('')
   const [minimum, setMinimum] = useState('')
+  const closeButton = useRef<HTMLAnchorElement>(null)
+  const searchInput = useRef<HTMLInputElement>(null)
+  const restoreFocus = useRef<HTMLElement | null>(null)
   const loadDetail = useCallback((signal: AbortSignal) => api.alert(selected!, signal), [selected, revision])
   const detail = useResource(selected ? loadDetail : null)
+  useEffect(() => {
+    if (selected && closeButton.current) {
+      const current = document.activeElement
+      if (!restoreFocus.current) {
+        restoreFocus.current = current instanceof HTMLElement && current.closest('.table-scroll')
+          ? current : searchInput.current
+      }
+      closeButton.current.focus()
+    } else if (restoreFocus.current) {
+      const target = restoreFocus.current.isConnected ? restoreFocus.current : searchInput.current
+      restoreFocus.current = null
+      target?.focus()
+    }
+  }, [selected])
   const search = query.trim().toLowerCase()
   const filtered = alerts.filter(alert => {
     const terms = [alert.id, alert.batch_id, alert.model_version, 'suspected attack', statuses[alert.investigation_status]]
@@ -108,7 +125,7 @@ export function Alerts({ alerts, selected, revision }: { alerts: Alert[]; select
   return <section className="panel">
     <div className="panel-heading"><div><h2>Alert queue</h2><p>{filtered.length} of {alerts.length} alerts</p></div></div>
     <div className="filters">
-      <label className="search"><Search size={18} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search ID, batch, model…" aria-label="Search alerts" /></label>
+      <label className="search"><Search size={18} /><input ref={searchInput} value={query} onChange={event => setQuery(event.target.value)} placeholder="Search ID, batch, model…" aria-label="Search alerts" /></label>
       <label className="filter"><Filter size={16} /><select aria-label="Filter by status" value={status} onChange={event => setStatus(event.target.value as AlertStatus | '')}>
         <option value="">All statuses</option>
         {Object.entries(statuses).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -118,8 +135,13 @@ export function Alerts({ alerts, selected, revision }: { alerts: Alert[]; select
       </select></label>
     </div>
     <AlertTable alerts={filtered} />
-    {selected && <aside className="detail-pane" aria-label="Alert details">
-      <div className="panel-heading"><div><h2>Alert details</h2><p>#{shortId(selected)}</p></div><a className="icon-button" href="#alerts" aria-label="Close alert details"><X size={20} /></a></div>
+    {selected && <aside className="detail-pane" aria-label="Alert details" onKeyDown={event => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        window.location.hash = 'alerts'
+      }
+    }}>
+      <div className="panel-heading"><div><h2>Alert details</h2><p>#{shortId(selected)}</p></div><a ref={closeButton} className="icon-button" href="#alerts" aria-label="Close alert details"><X size={20} /></a></div>
       {detail.loading && <State kind="loading" title="Loading alert" />}
       {detail.error && <State kind="error" title="Could not load alert" detail={detail.error} />}
       {detail.value && <div className="detail-content">

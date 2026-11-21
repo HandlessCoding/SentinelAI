@@ -65,6 +65,14 @@ The connection indicator reflects API health. A database request can
 still fail independently and will display its own error on the affected
 page. Refresh the dashboard after restoring the local service.
 
+### Interpret predictions
+
+At threshold 0.5, the frozen model falsely flagged **32.81% of normal rows**
+on the official UNSW-NB15 test partition. The dashboard is a local analyst
+prototype for prepared records. Live-network detection and alert volume
+remain unvalidated. See the [model evaluation](FINAL_MODEL_EVALUATION.md)
+and [reliability checks](RELIABILITY_TESTING.md).
+
 ## Upload and analyze CSV
 
 1. In **Analyze**, select **CSV upload**. Choose or drop a CSV file. For a

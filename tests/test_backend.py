@@ -74,10 +74,11 @@ class MockedBackendTests(unittest.TestCase):
 
     def test_unexpected_prediction_failure_returns_sanitized_500(self):
         self.model.predict.side_effect = RuntimeError("private internal model directory")
-        with self.assertLogs("backend.routes", level="ERROR"):
+        with self.assertLogs("backend.routes", level="ERROR") as logs:
             response = self.client.post("/predict", json={"records": [{}]})
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json(), {"detail": "Prediction failed."})
+        self.assertEqual(logs.output, ["ERROR:backend.routes:Prediction failed (RuntimeError)"])
 
     def test_docs_include_routes_bounds_and_complete_example(self):
         self.assertIn("Swagger UI", self.client.get("/docs").text)
@@ -99,7 +100,7 @@ class RealBackendTests(unittest.TestCase):
     def test_scores_synthetic_records_using_the_existing_package(self):
         sample = Path(__file__).resolve().parents[1] / "examples" / "unsw_nb15_inference.csv"
         records = list(read_prediction_csv(sample))
-        with TestClient(app) as client:
+        with TestClient(app, base_url="http://127.0.0.1") as client:
             info = client.get("/model/info").json()
             self.assertEqual(info, {
                 "model_version": "unsw-nb15-rf-v1",

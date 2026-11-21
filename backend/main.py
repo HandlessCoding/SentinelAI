@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from backend.csv_uploads import router as csv_router
 from backend.database import DatabaseConfigurationError
@@ -64,3 +65,6 @@ def create_app(model_loader=load_local_model):
 
 
 app = create_app()
+app.add_middleware(
+    TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"], www_redirect=False
+)

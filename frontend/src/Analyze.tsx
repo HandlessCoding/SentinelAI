@@ -1,5 +1,5 @@
 import { Braces, FileSpreadsheet, FileUp, FlaskConical, Play, ShieldAlert } from 'lucide-react'
-import { useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { api, parseRecords, type ModelInfo, type PredictionBatch, type Receipt } from './api'
 import { CsvAnalysis } from './CsvAnalysis'
 import demo from './synthetic-records.json'
@@ -7,6 +7,7 @@ import { message, percentage, shortId, State } from './shared'
 
 type AnalyzeProps = { model?: ModelInfo; refresh: () => void }
 type InputMode = 'manual' | 'csv'
+const MAX_MANUAL_JSON_BYTES = 2 * 1024 * 1024
 
 export function Analyze({ model, refresh }: AnalyzeProps) {
   const [mode, setMode] = useState<InputMode>('manual')
@@ -44,12 +45,15 @@ export function Analyze({ model, refresh }: AnalyzeProps) {
 function ManualAnalysis({ model, refresh }: AnalyzeProps) {
   const [text, setText] = useState('')
   const [synthetic, setSynthetic] = useState(false)
-  const [busy, setBusy] = useState<'preview' | 'save' | ''>('')
+  const [busy, setBusy] = useState<'preview' | 'save' | 'import' | ''>('')
   const [error, setError] = useState('')
   const [predictions, setPredictions] = useState<PredictionBatch>()
   const [receipt, setReceipt] = useState<Receipt>()
   const retry = useRef<{ payload: string; key: string } | null>(null)
   const file = useRef<HTMLInputElement>(null)
+  const operation = useRef<AbortController | null>(null)
+
+  useEffect(() => () => operation.current?.abort(), [])
 
   function replace(value: string, example = false) {
     setText(value)
@@ -59,35 +63,54 @@ function ManualAnalysis({ model, refresh }: AnalyzeProps) {
     setError('')
   }
 
-  async function importFile(event: ChangeEvent<HTMLInputElement>) {
-    const selected = event.target.files?.[0]
-    event.target.value = ''
-    if (!selected) return
+  async function perform(action: 'preview' | 'save' | 'import', work: (signal: AbortSignal) => Promise<void>) {
+    if (operation.current) return
+    const controller = new AbortController()
+    operation.current = controller
+    setBusy(action)
+    setError('')
     try {
-      replace(await selected.text())
+      await work(controller.signal)
     } catch (error) {
-      setError(message(error))
+      if (!controller.signal.aborted) setError(message(error))
+    } finally {
+      operation.current = null
+      if (!controller.signal.aborted) setBusy('')
     }
   }
 
-  async function submit(action: 'preview' | 'save') {
-    setError('')
-    setBusy(action)
-    try {
+  function importFile(event: ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0]
+    event.target.value = ''
+    if (!selected) return
+    return perform('import', async signal => {
+      if (selected.size === 0 || selected.size > MAX_MANUAL_JSON_BYTES) {
+        throw new Error('Choose a nonempty JSON file no larger than 2 MiB.')
+      }
+      const contents = await selected.text()
+      if (!signal.aborted) replace(contents)
+    })
+  }
+
+  function submit(action: 'preview' | 'save') {
+    return perform(action, async signal => {
+      if (text.length > MAX_MANUAL_JSON_BYTES || new TextEncoder().encode(text).byteLength > MAX_MANUAL_JSON_BYTES) {
+        throw new Error('Manual JSON must be at most 2 MiB.')
+      }
       const records = parseRecords(text)
       if (action === 'preview') {
-        setPredictions(await api.predict(records))
+        const result = await api.predict(records, signal)
+        if (!signal.aborted) setPredictions(result)
       } else {
         const payload = JSON.stringify(records)
         if (retry.current?.payload !== payload) retry.current = { payload, key: crypto.randomUUID() }
-        setReceipt(await api.analyze(records, retry.current.key))
-        refresh()
+        const result = await api.analyze(records, retry.current.key, signal)
+        if (!signal.aborted) {
+          setReceipt(result)
+          refresh()
+        }
       }
-    } catch (error) {
-      setError(message(error))
-    } finally {
-      setBusy('')
-    }
+    })
   }
 
   return <div className="analysis-layout">
@@ -97,7 +120,7 @@ function ManualAnalysis({ model, refresh }: AnalyzeProps) {
         <div className="input-actions">
           <button className="button secondary" disabled={!!busy} onClick={() => replace(JSON.stringify({ records: demo }, null, 2), true)}><FlaskConical size={17} />Load synthetic example</button>
           <button className="button secondary" disabled={!!busy} onClick={() => file.current?.click()}><FileUp size={17} />Import JSON</button>
-          <input type="file" ref={file} hidden accept=".json,application/json" onChange={importFile} />
+          <input type="file" ref={file} hidden aria-label="JSON file" accept=".json,application/json" disabled={!!busy} onChange={importFile} />
         </div>
         {synthetic && <p className="demo-label"><FlaskConical size={16} />Synthetic example loaded. These records are for demonstration.</p>}
         <textarea aria-label="Network records JSON" spellCheck={false} className="code-input" value={text}
@@ -111,7 +134,7 @@ function ManualAnalysis({ model, refresh }: AnalyzeProps) {
     </section>
     <section className="panel">
       <div className="panel-heading"><div><h2>Results</h2><p>{model ? `${model.expected_feature_count} features · ${percentage(model.decision_threshold)} decision threshold` : 'Prediction and persistence results'}</p></div></div>
-      {busy && <State kind="loading" title={busy === 'preview' ? 'Scoring records' : 'Saving suspected alerts'} />}
+      {busy && <State kind="loading" title={busy === 'preview' ? 'Scoring records' : busy === 'save' ? 'Saving suspected alerts' : 'Reading JSON file'} />}
       {!busy && !predictions && !receipt && <State title="No results yet" detail="Preview to score without saving, or analyze to persist suspected alerts." />}
       {predictions && <div className="prediction-list">
         <h3>Prediction preview</h3>

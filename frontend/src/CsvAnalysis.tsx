@@ -24,8 +24,13 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
   const [page, setPage] = useState(0)
   const fileInput = useRef<HTMLInputElement>(null)
   const operation = useRef<AbortController | null>(null)
+  const inspectHeading = useRef<HTMLHeadingElement>(null)
+  const inspectOpener = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => () => operation.current?.abort(), [])
+  useEffect(() => {
+    if (selected !== null) inspectHeading.current?.focus()
+  }, [selected])
 
   const total = prepared?.records.length ?? 0
   const attacks = predictions.filter(item => item.label === 1).length
@@ -36,6 +41,17 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
     ...(prepared?.columns.filter(name => !PREVIEW_FEATURES.includes(name)) ?? []),
   ].slice(0, 5)
   const selectedRecord = selected === null ? undefined : prepared?.records[selected]
+
+  function inspect(index: number, button: HTMLButtonElement) {
+    inspectOpener.current = button
+    if (selected === index) inspectHeading.current?.focus()
+    else setSelected(index)
+  }
+
+  function closeInspection() {
+    setSelected(null)
+    inspectOpener.current?.focus()
+  }
 
   function begin(action: Operation) {
     if (operation.current) return null
@@ -161,7 +177,7 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
   }
 
   return <div className="analysis-layout csv-layout">
-    <section className="panel">
+    <section className="panel" aria-busy={busy === 'upload' || undefined}>
       <div className="panel-heading">
         <div><h2>Upload CSV</h2><p>UNSW-NB15 feature records · Up to 2 MiB and 1,000 records</p></div>
         <FileSpreadsheet size={23} className="muted" />
@@ -192,13 +208,13 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
           <div className="csv-preview">
             <h3>Record preview</h3>
             <p className="muted">Showing {Math.min(total, PREVIEW_ROWS)} of {total} records</p>
-            <div className="table-scroll"><table aria-label="CSV record preview">
+            <div className="table-scroll" role="region" aria-label="Scrollable record preview" tabIndex={0}><table aria-label="CSV record preview">
               <thead><tr><th>Record</th>{previewColumns.map(name => <th key={name}>{name}</th>)}<th aria-label="View fields" /></tr></thead>
               <tbody>{prepared.records.slice(0, PREVIEW_ROWS).map((record, index) => <tr key={index}>
                 <td>{index + 1}</td>
                 {previewColumns.map(name => <td key={name}>{record[name]}</td>)}
                 <td><button className="button secondary" aria-label={`View fields for record ${index + 1}`}
-                  onClick={() => setSelected(index)}>View fields</button></td>
+                  onClick={event => inspect(index, event.currentTarget)}>View fields</button></td>
               </tr>)}</tbody>
             </table></div>
           </div>
@@ -220,7 +236,7 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
           : 'Review predictions before saving suspected alerts.'}</p></div></div>
       {!predictions.length && busy !== 'score' && !selectedRecord && <State title="No CSV results yet" detail="Upload and analyze a CSV to see its predictions." />}
       {prepared && (busy === 'score' || predictions.length > 0) && <div className="prediction-list csv-progress">
-        <p className="muted">{predictions.length} of {total} records scored</p>
+        <p className="muted" role="status">{predictions.length} of {total} records scored</p>
         <progress aria-label="Scoring progress" max={total} value={predictions.length} />
       </div>}
       {!!predictions.length && <>
@@ -229,7 +245,7 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
           <div><dt>Suspected attacks</dt><dd>{attacks}</dd></div>
           <div><dt>Predicted normal</dt><dd>{predictions.length - attacks}</dd></div>
         </dl>
-        <div className="table-scroll"><table aria-label="CSV predictions">
+        <div className="table-scroll" role="region" aria-label="Scrollable prediction results" tabIndex={0}><table aria-label="CSV predictions">
           <thead><tr><th>Record</th><th>Prediction</th><th>Attack probability</th><th aria-label="Inspect" /></tr></thead>
           <tbody>{predictions.slice(page * RESULT_ROWS, (page + 1) * RESULT_ROWS).map((prediction, index) => {
             const row = page * RESULT_ROWS + index
@@ -237,7 +253,7 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
               <td>{row + 1}</td><td>{prediction.label === 1 ? 'Suspected attack' : 'Normal'}</td>
               <td>{percentage(prediction.attack_probability)}</td>
               <td><button className="button secondary" aria-label={`Inspect record ${row + 1}`}
-                onClick={() => setSelected(row)}>Inspect</button></td>
+                onClick={event => inspect(row, event.currentTarget)}>Inspect</button></td>
             </tr>
           })}</tbody>
         </table></div>
@@ -247,10 +263,11 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
           <button className="button secondary" disabled={(page + 1) * RESULT_ROWS >= predictions.length} onClick={() => setPage(value => value + 1)}>Next results</button>
         </div>}
       </>}
-      {selected !== null && selectedRecord && <section className="prediction-list csv-inspection" aria-label={`Record ${selected + 1} details`}>
+      {selected !== null && selectedRecord && <section className="prediction-list csv-inspection" aria-labelledby="csv-record-details-title"
+        onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); closeInspection() } }}>
         <div className="input-actions">
-          <h3>Record {selected + 1} details</h3>
-          <button className="icon-button" onClick={() => setSelected(null)} aria-label="Close record details"><X size={16} /></button>
+          <h3 id="csv-record-details-title" ref={inspectHeading} tabIndex={-1}>Record {selected + 1} details</h3>
+          <button className="icon-button" onClick={closeInspection} aria-label="Close record details"><X size={16} /></button>
         </div>
         {predictions[selected] && <p className="muted">
           {predictions[selected].label === 1 ? 'Suspected attack' : 'Normal'} · {percentage(predictions[selected].attack_probability)} attack probability
@@ -259,7 +276,7 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
       </section>}
       {prepared && (busy === 'save' || receipts.length > 0) && <div className="prediction-list csv-progress csv-receipts">
         <h3>{savedRecords === total ? 'CSV analysis saved' : 'Alert persistence'}</h3>
-        <p className="muted">{savedRecords} of {total} records submitted · {savedAlerts} saved alerts</p>
+        <p className="muted" role="status">{savedRecords} of {total} records submitted · {savedAlerts} saved alerts</p>
         <progress aria-label="Saving progress" max={total} value={savedRecords} />
         {receipts.map((receipt, index) => <details key={receipt.batch_id} open={receipt.alert_ids.length > 0 && receipt.alert_ids.length <= 5}>
           <summary>Batch {index + 1} · {receipt.alert_ids.length} alerts</summary>

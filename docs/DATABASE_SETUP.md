@@ -21,6 +21,11 @@ role. Keep the password in the local configuration. The backend builds the
 connection URL from its separate components, including when the password
 contains URL punctuation.
 
+For this local setup, set `listen_addresses = '127.0.0.1,::1'` in the
+active PostgreSQL configuration and restart the Windows service if the
+setting changes. Verify the running value with SQL and the active listeners
+with Windows networking tools. [PostgreSQL connection settings](https://www.postgresql.org/docs/18/runtime-config-connection.html#GUC-LISTEN-ADDRESSES)
+
 Run these commands from the repository root in PowerShell:
 
 ```powershell
@@ -32,8 +37,8 @@ Run these commands from the repository root in PowerShell:
 
 The commands install the pinned dependencies, migrate the development
 database, print its applied revision, and serve the API locally. The
-expected initial revision is `0001_alert_investigations`. Port 8001 lets
-this server run alongside the G6 server on 8000. Open
+expected initial revision is `0001_alert_investigations`. Port 8001 matches
+the dashboard's local proxy target. Open
 [Swagger UI](http://127.0.0.1:8001/docs) to explore the routes.
 
 The backend loads the existing [trusted model package](MODEL_PACKAGING.md)

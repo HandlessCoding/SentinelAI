@@ -17,12 +17,13 @@ from backend.investigation_schemas import (
     IncidentUpdate, NoteCreate, NoteInfo,
 )
 from backend.models import Alert, AnalystNote, Incident, PredictionBatch
+from backend.request_limits import JSONRequestRoute
 from backend.routes import predict_records
 from backend.schemas import ErrorResponse, PredictRequest
 from ml.inference import OPTIONAL_METADATA_COLUMNS
 
 
-router = APIRouter()
+router = APIRouter(route_class=JSONRequestRoute)
 Database = Annotated[Session, Depends(get_session)]
 IdempotencyKey = Annotated[str, Header(pattern=r"^[A-Za-z0-9._:-]{1,128}$")]
 

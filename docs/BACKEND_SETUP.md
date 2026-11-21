@@ -9,7 +9,7 @@ for the package layout and explicit build command.
 
 ```powershell
 & .\.venv\Scripts\python.exe -B -m pip install --only-binary=:all: -r ml/requirements-baseline.txt -r backend/requirements.txt
-& .\.venv\Scripts\python.exe -B -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+& .\.venv\Scripts\python.exe -B -m uvicorn backend.main:app --host 127.0.0.1 --port 8001
 ```
 
 FastAPI defines the routes and OpenAPI docs, Pydantic validates JSON envelopes
@@ -21,10 +21,10 @@ Use Ctrl+C in the Uvicorn terminal to stop the server.
 
 ## Try the API
 
-Open [Swagger UI](http://127.0.0.1:8000/docs). Expand an operation, choose
+Open [Swagger UI](http://127.0.0.1:8001/docs). Expand an operation, choose
 **Try it out**, then **Execute**. The prediction operation includes a
 complete synthetic example. The generated OpenAPI contract is available at
-[openapi.json](http://127.0.0.1:8000/openapi.json).
+[openapi.json](http://127.0.0.1:8001/openapi.json).
 
 | Method and path | Result |
 |---|---|
@@ -37,7 +37,7 @@ PowerShell terminal at the repository root:
 
 ```powershell
 $batch = @{ records = @(Import-Csv -LiteralPath examples/unsw_nb15_inference.csv) }
-Invoke-RestMethod -Uri http://127.0.0.1:8000/predict -Method Post `
+Invoke-RestMethod -Uri http://127.0.0.1:8001/predict -Method Post `
   -ContentType 'application/json' -Body (ConvertTo-Json $batch -Depth 5)
 ```
 
@@ -50,6 +50,8 @@ validates values and preserves trained category handling. Details are in the
 | HTTP status | Meaning |
 |---|---|
 | `400` | Malformed JSON |
+| `413` | Body exceeds 2 MiB |
+| `415` | Wrong content type or compressed body |
 | `422` | Invalid request structure, record count, feature names, or values |
 | `500` | Unexpected prediction failure |
 
@@ -66,5 +68,5 @@ prediction is a model estimate for a prepared record.
 The suite covers the existing ML workflow, mocked API requests, and
 integration with the saved package using the synthetic CSV.
 
-For the investigation routes and the PostgreSQL test prerequisites, see the
-[G7 database setup](DATABASE_SETUP.md).
+For investigation routes and the PostgreSQL test prerequisites, see the
+[database setup](DATABASE_SETUP.md) and [reliability testing](RELIABILITY_TESTING.md).

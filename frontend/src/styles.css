@@ -25,6 +25,22 @@ button:disabled { cursor: not-allowed; opacity: .52; }
 a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
   outline: 2px solid var(--cyan); outline-offset: 3px;
 }
+.skip-link {
+  position: fixed;
+  z-index: 5;
+  top: 12px;
+  left: 12px;
+  transform: translateY(calc(-100% - 20px));
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--cyan);
+  color: #071116;
+  font-weight: 700;
+}
+.skip-link:focus { transform: none; }
+[tabindex="0"]:focus-visible, .csv-inspection h3:focus-visible {
+  outline: 2px solid var(--cyan); outline-offset: 2px;
+}
 h1, h2, h3, p { margin: 0; }
 small { color: var(--muted); }
 button svg, a svg { flex: none; }
@@ -246,7 +262,7 @@ textarea { resize: vertical; }
 }
 @media (max-width: 790px) {
   .workspace { margin-left: 0; }
-  .sidebar { visibility: hidden; transform: translateX(-100%); transition: transform .2s, visibility .2s; }
+  .sidebar { visibility: hidden; transform: translateX(-100%); transition: transform .2s; }
   .sidebar.mobile-open { visibility: visible; transform: translateX(0); }
   .sidebar-close { display: inline-flex !important; align-self: flex-end; margin-bottom: 8px; }
   .mobile-menu { display: inline-flex !important; }

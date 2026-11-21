@@ -4,6 +4,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Request
 
+from backend.request_limits import JSONRequestRoute
 from backend.schemas import (
     ErrorResponse,
     HealthResponse,
@@ -14,7 +15,7 @@ from backend.schemas import (
 from ml.inference import FEATURE_TYPES, InputValidationError
 
 
-router = APIRouter()
+router = APIRouter(route_class=JSONRequestRoute)
 logger = logging.getLogger(__name__)
 
 
@@ -62,6 +63,6 @@ def predict_records(model, records):
         raise HTTPException(
             status_code=422, detail="Records must match the expected UNSW-NB15 feature schema."
         ) from None
-    except Exception:
-        logger.exception("Prediction failed")
+    except Exception as error:
+        logger.error("Prediction failed (%s)", type(error).__name__)
         raise HTTPException(status_code=500, detail="Prediction failed.") from None

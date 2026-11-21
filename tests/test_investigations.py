@@ -25,7 +25,9 @@ ROOT = Path(__file__).resolve().parents[1]
 REVISION = "0001_alert_investigations"
 
 
-class PostgreSQLInvestigationsTests(unittest.TestCase):
+class PostgreSQLSchemaTestCase(unittest.TestCase):
+    """Give each test a freshly migrated schema in the dedicated database."""
+
     def setUp(self):
         test_url = database_url(testing=True)
         schema = f"g7_test_{uuid4().hex}"
@@ -70,6 +72,8 @@ class PostgreSQLInvestigationsTests(unittest.TestCase):
         with Session(self.engine) as session:
             return session.scalar(select(func.count()).select_from(model))
 
+
+class PostgreSQLInvestigationsTests(PostgreSQLSchemaTestCase):
     def test_migration_up_down_and_orm_schema_match(self):
         expected = {"prediction_batches", "alerts", "incidents", "analyst_notes", "alembic_version"}
         self.assertEqual(set(inspect(self.engine).get_table_names()), expected)

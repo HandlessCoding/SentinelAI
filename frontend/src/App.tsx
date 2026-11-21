@@ -2,7 +2,7 @@ import {
   Activity, FileSearch, LayoutDashboard, Menu, NotebookPen, RefreshCw,
   ScanLine, Server, Shield, ShieldAlert, X,
 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Analyze } from './Analyze'
 import { Alerts, Overview } from './Alerts'
 import { Investigations } from './Investigations'
@@ -30,25 +30,78 @@ export default function App() {
   const [revision, setRevision] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const [connection, setConnection] = useState<'checking' | 'online' | 'offline'>('checking')
+  const main = useRef<HTMLElement>(null)
+  const openNavigation = useRef<HTMLButtonElement>(null)
+  const sidebar = useRef<HTMLElement>(null)
+  const restoreMenuFocus = useRef(false)
+  const previousPage = useRef(page)
   const refresh = useCallback(() => setRevision(value => value + 1), [])
+
+  const closeMenu = useCallback((restoreFocus = true) => {
+    restoreMenuFocus.current = restoreFocus
+    setMenuOpen(false)
+  }, [])
 
   useEffect(() => {
     function updateRoute() {
       setRoute(readRoute())
-      setMenuOpen(false)
+      closeMenu(false)
     }
     window.addEventListener('hashchange', updateRoute)
     return () => window.removeEventListener('hashchange', updateRoute)
-  }, [])
+  }, [closeMenu])
+
+  useEffect(() => {
+    if (page !== previousPage.current && !(page === 'alerts' && selected)) main.current?.focus()
+    previousPage.current = page
+  }, [page, selected])
+
+  useEffect(() => {
+    if (!menuOpen) {
+      if (restoreMenuFocus.current) openNavigation.current?.focus()
+      restoreMenuFocus.current = false
+      return
+    }
+    sidebar.current?.querySelector<HTMLElement>('nav a[aria-current="page"]')?.focus()
+    const mobile = window.matchMedia?.('(max-width: 790px)')
+    const closeOnDesktop = (event: MediaQueryListEvent) => {
+      if (!event.matches) closeMenu(false)
+    }
+    mobile?.addEventListener('change', closeOnDesktop)
+    return () => mobile?.removeEventListener('change', closeOnDesktop)
+  }, [menuOpen, closeMenu])
+
+  function handleMenuKeys(event: KeyboardEvent<HTMLElement>) {
+    if (!menuOpen || event.defaultPrevented) return
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeMenu()
+    } else if (event.key === 'Tab') {
+      const first = sidebar.current?.querySelector<HTMLElement>('.brand')
+      const last = sidebar.current?.querySelector<HTMLElement>('nav a:last-child')
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last?.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first?.focus()
+      }
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController()
+    let checking = false
     async function check() {
+      if (checking) return
+      checking = true
       try {
         await api.health(controller.signal)
         if (!controller.signal.aborted) setConnection('online')
       } catch {
         if (!controller.signal.aborted) setConnection('offline')
+      } finally {
+        checking = false
       }
     }
     void check()
@@ -64,30 +117,37 @@ export default function App() {
   const current = pages[page]
 
   return <div className="shell">
-    {menuOpen && <button className="mobile-overlay" onClick={() => setMenuOpen(false)} aria-label="Close navigation" />}
-    <aside className={'sidebar' + (menuOpen ? ' mobile-open' : '')}>
-      <a className="brand" href="#overview"><span className="brand-icon"><Shield size={23} /></span><span>Sentinel<span>AI</span><small>Security Operations</small></span></a>
-      <button className="icon-button sidebar-close" aria-label="Close menu" onClick={() => setMenuOpen(false)}><X size={18} /></button>
+    {!menuOpen && <a className="skip-link" href="#main-content" onClick={event => {
+      event.preventDefault()
+      main.current?.focus()
+    }}>Skip to main content</a>}
+    {menuOpen && <div className="mobile-overlay" onClick={() => closeMenu()} aria-hidden="true" />}
+    <aside className={'sidebar' + (menuOpen ? ' mobile-open' : '')} id="workspace-sidebar" ref={sidebar}
+      role={menuOpen ? 'dialog' : undefined} aria-label={menuOpen ? 'Workspace navigation' : undefined}
+      aria-modal={menuOpen ? true : undefined} onKeyDown={handleMenuKeys}>
+      <a className="brand" href="#overview" onClick={() => closeMenu(page === 'overview')}><span className="brand-icon"><Shield size={23} /></span><span>Sentinel<span>AI</span><small>Security Operations</small></span></a>
+      <button className="icon-button sidebar-close" aria-label="Close menu" onClick={() => closeMenu()}><X size={18} /></button>
       <nav aria-label="Workspace">
         {pageList.map(name => {
           const { icon: Icon, label } = pages[name]
           return <a key={name} className={page === name ? 'active' : ''} href={'#' + name} aria-current={page === name ? 'page' : undefined}
-            onClick={() => setMenuOpen(false)}><Icon size={19} /><span>{label}</span></a>
+            onClick={() => closeMenu(page === name)}><Icon size={19} /><span>{label}</span></a>
         })}
       </nav>
       <div className="sidebar-footer"><div className="server-icon"><Server size={18} /></div><div><strong>Local workspace</strong>
         <small>{model.value?.model_version ?? (model.loading ? 'Checking model…' : 'Model unavailable')}</small></div></div>
     </aside>
-    <div className="workspace">
+    <div className="workspace" inert={menuOpen}>
       <header className="topbar">
-        <div><button className="icon-button mobile-menu" onClick={() => setMenuOpen(value => !value)} aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={menuOpen}>
+        <div><button className="icon-button mobile-menu" ref={openNavigation} onClick={() => setMenuOpen(true)}
+          aria-label="Open navigation" aria-expanded={menuOpen} aria-controls="workspace-sidebar">
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button><Activity size={19} className="topbar-mark" /><span className="topbar-label">Operations</span><span className="topbar-divider">/</span><strong>{current.label}</strong></div>
         <span className={'connection connection-' + connection} role="status"><i />
           {connection === 'checking' ? 'Checking API' : connection === 'online' ? 'API connected' : 'API offline'}
         </span>
       </header>
-      <main id="main-content">
+      <main id="main-content" ref={main} tabIndex={-1}>
         <div className="page-heading">
           <div><h1>{current.title}</h1><p>{current.detail}</p></div>
           <div className="page-actions">

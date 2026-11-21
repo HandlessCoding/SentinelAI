@@ -40,7 +40,13 @@ def database_url(*, testing=False):
 
 @lru_cache(maxsize=1)
 def get_engine():
-    return create_engine(database_url(), pool_pre_ping=True, hide_parameters=True)
+    return create_engine(
+        database_url(),
+        connect_args={"connect_timeout": 3},
+        pool_timeout=5,
+        pool_pre_ping=True,
+        hide_parameters=True,
+    )
 
 
 def get_session():
