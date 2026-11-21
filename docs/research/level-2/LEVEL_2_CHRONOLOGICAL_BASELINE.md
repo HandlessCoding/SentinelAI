@@ -75,7 +75,7 @@ encoded key. A compact row index supports a second pass over
 groups to verify the retained boundaries. The runner keeps
 scratch files beside the archive and requires 2 GiB of free disk
 space. It uses only the Python standard library.
-[Audit runner](../ml/cic_chronological_split.py) · [Synthetic tests](../tests/test_cic_chronological_split.py)
+[Audit runner](../../../ml/cic_chronological_split.py) · [Synthetic tests](../../../tests/test_cic_chronological_split.py)
 
 ```powershell
 & .\.venv\Scripts\python.exe -B -m ml.cic_chronological_split

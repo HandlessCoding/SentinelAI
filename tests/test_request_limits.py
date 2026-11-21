@@ -17,7 +17,7 @@ class RequestLimitTests(unittest.TestCase):
         self.app = create_app(lambda: self.model)
         self.database = Mock(side_effect=AssertionError("Request should fail before database access"))
         self.app.dependency_overrides[get_session] = self.database
-        self.client = self.enterContext(TestClient(self.app))
+        self.client = self.enterContext(TestClient(self.app, base_url="http://127.0.0.1"))
 
     def test_all_json_routes_require_explicit_uncompressed_json(self):
         routes = [
@@ -58,6 +58,19 @@ class RequestLimitTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.model.predict.assert_called_once_with([{}])
 
+    def test_json_and_csv_reject_ambiguous_body_headers(self):
+        for path, media in (("/predict", "application/json"), ("/csv/preview", "text/csv")):
+            for extra, status in (
+                ([("Content-Length", "0"), ("Content-Length", "0")], 400),
+                ([("Content-Length", "+0")], 400),
+                ([("Content-Type", media)], 415),
+                ([("Content-Encoding", "identity"), ("Content-Encoding", "identity")], 415),
+            ):
+                with self.subTest(path=path, headers=extra):
+                    response = self.client.post(path, content=b"", headers=[("Content-Type", media), *extra])
+                    self.assertEqual(response.status_code, status, response.text)
+        self.model.predict.assert_not_called()
+
 
 class StreamedRequestLimitTests(unittest.IsolatedAsyncioTestCase):
     async def test_caps_actual_stream_with_missing_or_underreported_length(self):
@@ -71,7 +84,7 @@ class StreamedRequestLimitTests(unittest.IsolatedAsyncioTestCase):
             yield b'{"fixture": "long enough to exceed the test cap"}]}'
 
         async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=application), base_url="http://testserver"
+            transport=httpx.ASGITransport(app=application), base_url="http://127.0.0.1"
         ) as client:
             for length in (None, "1"):
                 for path in ("/predict", "/analyze"):
@@ -90,8 +103,9 @@ class StreamedRequestLimitTests(unittest.IsolatedAsyncioTestCase):
 
 
 class LocalHostGuardTests(unittest.TestCase):
-    def test_served_app_accepts_loopback_host_and_rejects_other_hosts(self):
-        with TestClient(app, base_url="http://127.0.0.1") as client:
-            self.assertEqual(client.get("/health").status_code, 200)
-            self.assertEqual(client.get("/health", headers={"Host": "localhost:5173"}).status_code, 200)
-            self.assertEqual(client.get("/health", headers={"Host": "example.invalid"}).status_code, 400)
+    def test_module_and_factory_accept_loopback_and_reject_other_hosts(self):
+        for application in (app, create_app(Mock())):
+            with TestClient(application, base_url="http://127.0.0.1") as client:
+                self.assertEqual(client.get("/health").status_code, 200)
+                self.assertEqual(client.get("/health", headers={"Host": "localhost:5173"}).status_code, 200)
+                self.assertEqual(client.get("/health", headers={"Host": "example.invalid"}).status_code, 400)

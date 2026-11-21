@@ -142,6 +142,7 @@ def register_review(root, capture_id, spec, sensor, evidence_files, problems, au
         "observation_point": "sensor-lab0", "collection_profile": "g27-tcpdump-zeek",
         "pcap": f"raw/{capture_id}.pcap", "conn_log": f"zeek/{capture_id}/conn.log",
         "zeek_receipt": f"zeek/{capture_id}/run.json", "authorization": authorization,
+        "evidence_files": [*evidence_files, review_file],
         "start": start, "end": end, "windows": [] if problems else [{
             "start": start, "end": end, "label": "benign", "evidence": review_file,
             "scope": "all_observed_flows", "evidence_kind": "scenario_event_log",
@@ -150,6 +151,9 @@ def register_review(root, capture_id, spec, sensor, evidence_files, problems, au
     }
     if (root / f"registry/{capture_id}.json").is_file():
         registered, _ = load_verified(root, capture_id)
+        # Existing seals remain valid with their original set of evidence pins.
+        if "evidence_files" not in registered["capture"]:
+            manifest.pop("evidence_files")
         if registered["capture"] != manifest:
             raise ValueError(f"review differs from the existing registration for {capture_id}")
     else:

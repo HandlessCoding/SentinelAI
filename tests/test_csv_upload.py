@@ -27,7 +27,7 @@ def make_csv(rows, columns=None):
 class CSVUploadTests(unittest.TestCase):
     def setUp(self):
         self.model = Mock()
-        self.client = self.enterContext(TestClient(create_app(lambda: self.model)))
+        self.client = self.enterContext(TestClient(create_app(lambda: self.model), base_url="http://127.0.0.1"))
         self.headers = {"Content-Type": "text/csv; charset=utf-8"}
 
     def upload(self, body):

@@ -171,7 +171,7 @@ integer spellings, including lossless forms like `24.0`. It rejects
 missing, fractional, negative, and out-of-range values. Measured zero is
 retained. Rejections are attributed to the first invalid field per row.
 No learned scaling, imputation, encoding, or classifier is included.
-[Flow adapter](../ml/level2_flow_schema.py)
+[Flow adapter](../../../ml/level2_flow_schema.py)
 
 | Canonical field | UQ column | Definition and type |
 | --- | --- | --- |
@@ -222,7 +222,7 @@ conflicting group has both binary labels. Counts distinguish repeated
 occurrences beyond the first, all rows in repeated groups, and all rows
 in conflicting groups. Type counts distinguish blank cells, numeric
 spellings, nonfinite values, and malformed values. The JSON report
-contains aggregates rather than source rows. [Audit command](../ml/audit_level2_data.py) · [Exact duplicate aggregation](../ml/level2_audit_storage.py)
+contains aggregates rather than source rows. [Audit command](../../../ml/audit_level2_data.py) · [Exact duplicate aggregation](../../../ml/level2_audit_storage.py)
 
 The full scan and exact merge took **11 minutes 31 seconds** in the
 local Python 3.12.3 environment. At the 8.25 million record checkpoint,

@@ -19,7 +19,7 @@ fingerprint. Retain these practices. Several Level 1 inputs, including
 `ct_*` history features and FTP and HTTP fields, depend on the benchmark's
 feature extraction. The current loader also enforces the exact version,
 schema, runtime, and artifact digest. A second contract avoids forcing
-other flow sources into those 42 fields. [G2 pipeline](../ml/run_baseline.py) · [G3 threshold runner](../ml/run_threshold_analysis.py) · [G5 packaging](../ml/train_model.py) · [Level 1 inference](../ml/inference.py) · [Level 2 roadmap](LEVEL_2_ROADMAP.md)
+other flow sources into those 42 fields. [G2 pipeline](../../../ml/run_baseline.py) · [G3 threshold runner](../../../ml/run_threshold_analysis.py) · [G5 packaging](../../../ml/train_model.py) · [Level 1 inference](../../../ml/inference.py) · [Level 2 roadmap](LEVEL_2_ROADMAP.md)
 
 G4's pooled training-only validation recorded **98.84% attack recall and
 14.06% false-positive rate (FPR)** at 0.5. At its exploratory 5% operating
@@ -28,7 +28,7 @@ meeting that budget on one of three outer folds. G10 recorded **99.35%
 recall and 32.81% FPR** on the official test, with 8,541 test rows sharing
 exact predictors with training. These historical results motivate measuring
 false alarms on each new context. G10 scores, CSV, and derivatives of
-the same UNSW captures are outside Level 2 model development. [G4 comparison](MODEL_COMPARISON.md) · [G10 final evaluation](FINAL_MODEL_EVALUATION.md)
+the same UNSW captures are outside Level 2 model development. [G4 comparison](../level-1/MODEL_COMPARISON.md) · [G10 final evaluation](../../FINAL_MODEL_EVALUATION.md)
 
 ## Dataset comparison
 
@@ -51,7 +51,7 @@ allocating storage.
   The tabular features and labels come from controlled captures. The Level 1
   duplicate and conflicting-label audit applies to the prepared release.
   A future expanded release audit would need its own counts and evidence.
-  [UNSW terms](https://research.unsw.edu.au/projects/unsw-nb15-dataset) · [G1 dataset audit](DATASET_ANALYSIS.md)
+  [UNSW terms](https://research.unsw.edu.au/projects/unsw-nb15-dataset) · [G1 dataset audit](../level-1/DATASET_ANALYSIS.md)
 - **CIC-IDS2017.** UNB makes the data available for research and requests its
   paper citation. Its page provides no explicit redistribution terms for
   SentinelAI. Monday is benign-only, and scheduled scenarios can make day,

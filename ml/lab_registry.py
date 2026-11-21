@@ -104,7 +104,7 @@ def validate_spec(spec):
         "observation_point", "collection_profile", "scenario", "source", "role",
         "start", "end", "pcap", "conn_log", "windows",
     }
-    if not required.issubset(spec) or spec.keys() - required - {"zeek_receipt", "authorization"}:
+    if not required.issubset(spec) or spec.keys() - required - {"zeek_receipt", "authorization", "evidence_files"}:
         raise ValueError("unexpected or missing capture manifest fields")
     if type(spec["version"]) is not int or spec["version"] != 1:
         raise ValueError("unsupported capture manifest version")
@@ -118,6 +118,11 @@ def validate_spec(spec):
         raise ValueError("device_ids must contain unique device identifiers")
     if spec["source"] != "synthetic" and not {"zeek_receipt", "authorization"} <= spec.keys():
         raise ValueError("authorized captures require an offline Zeek receipt and permission record")
+    evidence_files = spec.get("evidence_files", [])
+    if (not isinstance(evidence_files, list)
+            or any(not isinstance(name, str) or not name.strip() for name in evidence_files)
+            or len(set(evidence_files)) != len(evidence_files)):
+        raise ValueError("evidence_files must contain distinct lab paths")
     start, end = time_bounds(spec)
     windows = []
     if not isinstance(spec["windows"], list):
@@ -155,13 +160,12 @@ def verified_hashes(root, spec):
     if len(set(resolved.values())) != len(resolved):
         raise ValueError("capture, log, permission record, and receipt must be distinct files")
     evidence_hashes = {}
-    for window in spec["windows"]:
-        name = window["evidence"]
+    names = dict.fromkeys([*spec.get("evidence_files", []), *(window["evidence"] for window in spec["windows"])])
+    for name in names:
         path = lab_path(root, name)
         if path in resolved.values() or not path.is_file() or path.stat().st_size == 0:
             raise ValueError("label evidence must be a separate nonempty file")
-        if name not in evidence_hashes:
-            evidence_hashes[name] = digest(path)
+        evidence_hashes[name] = digest(path)
     if "authorization" in resolved and resolved["authorization"].stat().st_size == 0:
         raise ValueError("permission record is empty")
     hashes = {name: digest(path, pcap=name == "pcap") for name, path in resolved.items()}

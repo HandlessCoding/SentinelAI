@@ -129,7 +129,7 @@ flags or labels, or construct a `flow-core-v1` vector. A separate v3
 timestamp adapter reads Unix milliseconds and validates interval
 ordering. Both were tested with synthetic records. The actual released
 CIC headers and LYCOS mappings remain an acquisition-time check.
-[Fixed header definitions](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/FlowFeature.java) · [Fixed packet timestamps](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/PacketReader.java) · [Fixed byte and counter implementation](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/BasicFlow.java) · [Adapter and metadata checks](../ml/level2_provenance.py)
+[Fixed header definitions](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/FlowFeature.java) · [Fixed packet timestamps](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/PacketReader.java) · [Fixed byte and counter implementation](https://github.com/GintsEngelen/CICFlowMeter/blob/master/src/main/java/cic/cs/unb/ca/jnetpcap/BasicFlow.java) · [Adapter and metadata checks](../../../ml/level2_provenance.py)
 
 ## Capture-aware split and next experiment
 
@@ -176,7 +176,7 @@ capture IDs and optional original capture hashes, nonoverlapping
 same-lineage time bounds across the boundary, chronological ordering when requested, and
 minimum class denominators. Corrected CIC and LYCOS aliases resolve
 to one lineage. A caller must verify the underlying evidence. Use
-the [G15 split planner](../ml/level2_splits.py) afterward to enforce
+the [G15 split planner](../../../ml/level2_splits.py) afterward to enforce
 exact-vector and session boundaries. A benign-only block can exercise
 FPR with attack recall left undefined.
 

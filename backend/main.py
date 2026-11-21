@@ -38,6 +38,9 @@ def create_app(model_loader=load_local_model):
         version="0.1.0",
         lifespan=lifespan,
     )
+    app.add_middleware(
+        TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"], www_redirect=False
+    )
 
     @app.exception_handler(RequestValidationError)
     async def handle_invalid_request(request: Request, error: RequestValidationError):
@@ -65,6 +68,3 @@ def create_app(model_loader=load_local_model):
 
 
 app = create_app()
-app.add_middleware(
-    TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"], www_redirect=False
-)

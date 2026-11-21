@@ -107,7 +107,7 @@ class DependencyOutageTests(unittest.TestCase):
                     yield session
 
             app.dependency_overrides[get_session] = unreachable_session
-            with TestClient(app) as client:
+            with TestClient(app, base_url="http://127.0.0.1") as client:
                 preview = preview_synthetic_csv(client)
                 self.assertEqual(preview.status_code, 200, preview.text)
                 payload = {"records": preview.json()["records"]}
@@ -135,5 +135,5 @@ class DependencyOutageTests(unittest.TestCase):
             artifact = Path(directory) / "missing-artifact"
             app = create_app(lambda: load_model(artifact))
             with self.assertRaises(ArtifactError):
-                with TestClient(app):
+                with TestClient(app, base_url="http://127.0.0.1"):
                     self.fail("The API must fail startup when its model package is missing.")

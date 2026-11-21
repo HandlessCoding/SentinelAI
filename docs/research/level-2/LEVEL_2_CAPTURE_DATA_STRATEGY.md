@@ -168,7 +168,7 @@ before training. A common feature name or unit does not establish
 parity. Verify how the collector chooses direction, closes flows,
 handles retransmissions and truncation, and represents missing
 counters.
-[Existing adapter](../ml/level2_flow_schema.py) · [G17 counter semantics](LEVEL_2_PROVENANCE_AND_DATA.md) · [Zeek field definitions](https://docs.zeek.org/en/current/scripts/base/protocols/conn/main.zeek.html#type-Conn::Info)
+[Existing adapter](../../../ml/level2_flow_schema.py) · [G17 counter semantics](LEVEL_2_PROVENANCE_AND_DATA.md) · [Zeek field definitions](https://docs.zeek.org/en/current/scripts/base/protocols/conn/main.zeek.html#type-Conn::Info)
 
 | Feature | IoT-23 Zeek export | CTU-13 Argus export and transfer decision |
 | --- | --- | --- |

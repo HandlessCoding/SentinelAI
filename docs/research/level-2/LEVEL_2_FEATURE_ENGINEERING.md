@@ -38,7 +38,7 @@ candidate rejections by first failing field, and protocol-specific
 inapplicability. The external sort keeps full key bytes and label counts
 in bounded temporary runs on D:. It aggregates identical vectors across
 chunks and never changes or deduplicates the source records.
-[Comparison runner](../ml/compare_level2_features.py) · [Exact aggregation](../ml/level2_audit_storage.py)
+[Comparison runner](../../../ml/compare_level2_features.py) · [Exact aggregation](../../../ml/level2_audit_storage.py)
 
 ## Findings
 
@@ -141,7 +141,7 @@ A port is structurally inapplicable outside TCP and UDP. TCP flags and
 retransmission fields are inapplicable outside TCP. Those nulls have
 their own encoding and remain distinct from raw blanks and measured
 zeros. No scaler, imputation, encoder, or classifier was fitted.
-[Feature selection code](../ml/level2_feature_sets.py)
+[Feature selection code](../../../ml/level2_feature_sets.py)
 
 | Family | Fields and interpretation | Zeek and Rust feasibility |
 | --- | --- | --- |
@@ -199,7 +199,7 @@ one fold, covering **16,601 of 249,672** transport rows. These are
 proxies for potential dependence. They can recur at different times
 and do not identify a unique session or capture. The output contains
 counts only. The address and tuple values were kept off the predictor
-list and out of the report. [Diagnostic code](../ml/compare_level2_features.py)
+list and out of the report. [Diagnostic code](../../../ml/compare_level2_features.py)
 
 ### Proposed verified-provenance split
 
@@ -232,7 +232,7 @@ list and out of the report. [Diagnostic code](../ml/compare_level2_features.py)
    generalization, because G15 already used v2 labels to study the
    proposed features. The reserved independent benchmark stays sealed
    until the final protocol and model are frozen.
-   [Split planner and checks](../ml/level2_splits.py) · [G13 evaluation plan](LEVEL_2_DATA_STRATEGY.md#leakage-safe-evaluation-plan)
+   [Split planner and checks](../../../ml/level2_splits.py) · [G13 evaluation plan](LEVEL_2_DATA_STRATEGY.md#leakage-safe-evaluation-plan)
 
 The v3 ToN-IoT release is a possible separately approved development
 input. It is a fresh extraction from the same source lineage, with

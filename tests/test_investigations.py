@@ -66,7 +66,7 @@ class PostgreSQLSchemaTestCase(unittest.TestCase):
                 yield database
 
         app.dependency_overrides[get_session] = session
-        return TestClient(app)
+        return TestClient(app, base_url="http://127.0.0.1")
 
     def count(self, model):
         with Session(self.engine) as session:

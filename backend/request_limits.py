@@ -8,6 +8,28 @@ MAX_JSON_BYTES = 2 * 1024 * 1024
 SIZE_ERROR = "JSON request bodies must be at most 2 MiB."
 
 
+def validate_body_headers(request, *, media_type, max_bytes, media_error, length_error, size_error):
+    """Validate headers before reading an uncompressed request body."""
+    types = request.headers.getlist("content-type")
+    encodings = request.headers.getlist("content-encoding")
+    if (len(types) != 1 or types[0].split(";", 1)[0].strip().lower() != media_type
+            or len(encodings) > 1 or (encodings and encodings[0].strip().lower() != "identity")):
+        raise HTTPException(status_code=415, detail=media_error)
+
+    lengths = request.headers.getlist("content-length")
+    if not lengths:
+        return
+    length = lengths[0].strip()
+    if len(lengths) != 1 or not length.isascii() or not length.isdecimal():
+        raise HTTPException(status_code=400, detail=length_error)
+    try:
+        declared_bytes = int(length)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=length_error) from None
+    if declared_bytes > max_bytes:
+        raise HTTPException(status_code=413, detail=size_error)
+
+
 class JSONRequestRoute(APIRoute):
     """Require explicit JSON and bound the total bytes delivered by ASGI."""
 
@@ -17,25 +39,11 @@ class JSONRequestRoute(APIRoute):
             return handle
 
         async def limited_handler(request: Request):
-            media_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
-            encoding = request.headers.get("content-encoding", "identity").strip().lower()
-            if media_type != "application/json" or encoding != "identity":
-                raise HTTPException(
-                    status_code=415,
-                    detail="Send an uncompressed request with Content-Type application/json.",
-                )
-
-            lengths = request.headers.getlist("content-length")
-            if lengths:
-                declared_length = lengths[0].strip()
-                if len(lengths) != 1 or not declared_length.isascii() or not declared_length.isdecimal():
-                    raise HTTPException(status_code=400, detail="Invalid request length.")
-                try:
-                    declared_bytes = int(declared_length)
-                except ValueError:
-                    raise HTTPException(status_code=400, detail="Invalid request length.") from None
-                if declared_bytes > MAX_JSON_BYTES:
-                    raise HTTPException(status_code=413, detail=SIZE_ERROR)
+            validate_body_headers(
+                request, media_type="application/json", max_bytes=MAX_JSON_BYTES,
+                media_error="Send an uncompressed request with Content-Type application/json.",
+                length_error="Invalid request length.", size_error=SIZE_ERROR,
+            )
 
             received_bytes = 0
             original_receive = request.receive

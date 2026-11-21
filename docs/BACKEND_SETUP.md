@@ -1,4 +1,4 @@
-# G6 local FastAPI backend
+# Local FastAPI backend and API
 
 ## Install and start
 
@@ -49,15 +49,16 @@ validates values and preserves trained category handling. Details are in the
 
 | HTTP status | Meaning |
 |---|---|
-| `400` | Malformed JSON |
+| `400` | Malformed JSON or invalid body length |
 | `413` | Body exceeds 2 MiB |
 | `415` | Wrong content type or compressed body |
 | `422` | Invalid request structure, record count, feature names, or values |
 | `500` | Unexpected prediction failure |
 
 Responses contain short error messages. Unexpected prediction exceptions are
-logged on the server. The API is configured for local loopback use. A
-prediction is a model estimate for a prepared record.
+logged on the server. Both the exported ASGI app and factory enforce the
+local Host guard. Bind Uvicorn to loopback as shown above. A prediction is a
+model estimate for a prepared record.
 
 ## Tests
 

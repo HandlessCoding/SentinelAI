@@ -237,7 +237,7 @@ $release = 'data/level2/nf-ton-iot-v2'
 
 The pilot JSON contains validation-fold metrics, aggregate confusion
 matrices in TN/FP and FN/TP order, threshold choices, ambiguity slices,
-and category support and recall for every model. [Runner](../ml/run_level2_experiment.py) · [Synthetic tests](../tests/test_level2_experiment.py)
+and category support and recall for every model. [Runner](../../../ml/run_level2_experiment.py) · [Synthetic tests](../../../tests/test_level2_experiment.py)
 
 The recorded run used Python 3.12.3, NumPy 2.2.6, and scikit-learn 1.7.2.
 All **118 Python tests** and **22 frontend tests** passed, along with the

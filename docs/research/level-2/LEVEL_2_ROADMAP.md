@@ -1,6 +1,6 @@
 # Planned Level 2 improvements
 
-Level 2 extends the completed local Level 1 workflow. The priorities below are proposed for future work. Keep `unsw-nb15-rf-v1` and the [G10 official test report](FINAL_MODEL_EVALUATION.md) as a fixed reference.
+Level 2 extends the completed local Level 1 workflow. The priorities below are proposed for future work. Keep `unsw-nb15-rf-v1` and the [G10 official test report](../../FINAL_MODEL_EVALUATION.md) as a fixed reference.
 
 ## 1. Evaluate additional datasets
 

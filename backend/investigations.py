@@ -1,8 +1,6 @@
 """Store suspected-attack alerts and support analyst investigation workflows."""
 
 from datetime import UTC, datetime
-from hashlib import sha256
-import json
 from typing import Annotated
 from uuid import UUID
 
@@ -11,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from backend.batch_processing import predict_records, request_digest
 from backend.database import get_session
 from backend.investigation_schemas import (
     AlertInfo, AlertStatus, AnalysisReceipt, IncidentCreate, IncidentInfo,
@@ -18,26 +17,12 @@ from backend.investigation_schemas import (
 )
 from backend.models import Alert, AnalystNote, Incident, PredictionBatch
 from backend.request_limits import JSONRequestRoute
-from backend.routes import predict_records
 from backend.schemas import ErrorResponse, PredictRequest
-from ml.inference import OPTIONAL_METADATA_COLUMNS
 
 
 router = APIRouter(route_class=JSONRequestRoute)
 Database = Annotated[Session, Depends(get_session)]
 IdempotencyKey = Annotated[str, Header(pattern=r"^[A-Za-z0-9._:-]{1,128}$")]
-
-
-def request_digest(records):
-    predictors = [
-        {name: value for name, value in record.items() if name not in OPTIONAL_METADATA_COLUMNS}
-        for record in records
-    ]
-    try:
-        canonical = json.dumps(predictors, sort_keys=True, separators=(",", ":"), allow_nan=False)
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Records must contain finite values.") from None
-    return sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def receipt(batch, alert_ids):
