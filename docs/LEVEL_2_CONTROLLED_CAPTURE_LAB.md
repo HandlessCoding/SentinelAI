@@ -263,3 +263,6 @@ log and independently reviewed windows. A successful benign smoke run clears
 the collection plumbing. Building a trainable cohort then depends on matched
 authorized records with independent positive evidence and the frozen coverage
 gates, including the two validation attack sessions.
+
+The host-specific setup and verification record is available in
+[G26 Isolated Linux lab and Zeek verification](LEVEL_2_G26_ZEEK_VERIFICATION.md).

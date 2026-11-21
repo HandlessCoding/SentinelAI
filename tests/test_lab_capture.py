@@ -97,6 +97,12 @@ class CaptureLabTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "line 1"):
             list(read_flows(bad, digest(bad)))
 
+    def test_real_zeek_duration_rounds_up_for_window_attribution(self):
+        flow = parse_flow({"ts": Decimal("1795301661.65971"), "duration": Decimal("0.028464078903198242")})
+        self.assertEqual(flow.timestamp_ns, 1_795_301_661_659_710_000)
+        self.assertEqual(flow.features["duration_ns"], 28_464_079)
+        self.assertNotIn("duration", flow.issues)
+
     def test_audit_reports_shared_vectors_and_group_reuse(self):
         spec = deepcopy(self.spec)
         spec.update(capture_id="linked", role="validation")

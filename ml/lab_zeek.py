@@ -2,7 +2,7 @@
 
 from bisect import bisect_right
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, ROUND_CEILING
 from hashlib import sha256
 import json
 from os import fstat
@@ -20,6 +20,7 @@ TEXT_FIELDS = ("proto", "conn_state", "service", "history")
 CORE_FIELDS = ("proto", *COUNTERS[:4])
 RICH_FIELDS = (*CORE_FIELDS, "duration_ns", "conn_state", "service", "orig_bytes", "resp_bytes", "missed_bytes", "history")
 MAX_LINE = 1024**2
+ONE_NANOSECOND_IN_SECONDS = Decimal("0.000000001")
 
 
 def run_zeek(root, pcap_name, run_id, executable="zeek"):
@@ -82,6 +83,14 @@ def seconds_ns(value):
     return int(value * NANOSECOND)
 
 
+def duration_ns(value):
+    """Round Zeek's floating-point intervals up without shortening a label check."""
+    if (isinstance(value, Decimal) and value.is_finite()
+            and ONE_NANOSECOND_IN_SECONDS <= value <= 9_999_999_999):
+        value = value.quantize(ONE_NANOSECOND_IN_SECONDS, rounding=ROUND_CEILING)
+    return seconds_ns(value)
+
+
 def count(value):
     if type(value) is not int or not 0 <= value < 2**64:
         raise ValueError("expected an unsigned Zeek counter")
@@ -128,7 +137,7 @@ def parse_flow(row):
     timestamp = optional(row, "ts", seconds_ns, issues)
     features = {field: optional(row, field, count, issues) for field in COUNTERS}
     features.update({field: optional(row, field, text_field, issues) for field in TEXT_FIELDS})
-    features["duration_ns"] = optional(row, "duration", seconds_ns, issues)
+    features["duration_ns"] = optional(row, "duration", duration_ns, issues)
     endpoints = tuple(row.get(field) for field in ("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p"))
     return Flow(timestamp, features, issues, endpoints)
 
