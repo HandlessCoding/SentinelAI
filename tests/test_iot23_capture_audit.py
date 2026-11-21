@@ -104,6 +104,48 @@ class IoT23CaptureAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "SHA-256 does not match"):
             self.run_audit(entry)
 
+    def test_pinned_rule_footprint_reports_fields_without_rule_values(self):
+        entry = self.capture("a", "fit", [flow(), flow(label="Malicious", proto="udp")])
+        rules = self.root / "labels.config"
+        rules.write_text(
+            "Unknown:\n - srcIP=all\n"
+            "Benign, Reviewed-device\n - !dstIp=192.0.2.1 & proto=TCP\n"
+            "Malicious, Fixture:\n - DSTIP=198.51.100.2\n",
+            encoding="utf-8",
+        )
+        rule_digest = sha256(rules.read_bytes()).hexdigest()
+        entry.update(label_rules=rules.name, label_rules_sha256=rule_digest)
+        capture = self.run_audit(entry)["captures"][0]
+        footprint = capture["label_rules"]
+        self.assertEqual(footprint["sha256"], rule_digest)
+        self.assertEqual(footprint["label_sections"], {"Unknown": 1, "Benign": 1, "Malicious": 1})
+        self.assertEqual(footprint["predicate_fields"]["Benign"], {"dstip": 1, "proto": 1})
+        self.assertEqual(footprint["predicate_fields"]["Malicious"], {"dstip": 1})
+        self.assertNotIn("198.51.100.2", json.dumps(footprint))
+        self.assertEqual(capture["protocols_by_class"], {"unverified_benign": {"tcp": 1},
+                                                         "explicit_malicious": {"udp": 1}})
+
+    def test_changed_rule_sidecar_is_rejected(self):
+        entry = self.capture("a", "fit", [flow()])
+        rules = self.root / "labels.config"
+        rules.write_text("Benign:\n - srcIP=all\n", encoding="utf-8")
+        entry.update(label_rules=rules.name, label_rules_sha256=sha256(rules.read_bytes()).hexdigest())
+        with rules.open("a", encoding="utf-8") as stream:
+            stream.write("#changed\n")
+        with self.assertRaisesRegex(ValueError, "Label-rule SHA-256 does not match"):
+            self.run_audit(entry)
+
+    def test_rule_file_requires_digest_and_a_supported_format(self):
+        entry = self.capture("a", "fit", [flow()])
+        rules = self.root / "labels.config"
+        rules.write_text("Benign:\n - unrecognized rule format\n", encoding="utf-8")
+        entry["label_rules"] = rules.name
+        with self.assertRaisesRegex(ValueError, "needs a pinned SHA-256"):
+            self.run_audit(entry)
+        entry["label_rules_sha256"] = sha256(rules.read_bytes()).hexdigest()
+        with self.assertRaisesRegex(ValueError, "Unrecognized predicate"):
+            self.run_audit(entry)
+
     def test_coverage_rejects_category_loss_even_when_class_floors_hold(self):
         roles = (*ROLES, "validation")
         captures = [Capture(str(i), str(i), None, role, "", "") for i, role in enumerate(roles)]

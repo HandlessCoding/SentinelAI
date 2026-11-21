@@ -29,6 +29,8 @@ MIN_CLASS_ROWS = 1000
 MIN_CATEGORY_ROWS = 100
 SECONDS = re.compile(r"([0-9]{1,10})(?:\.([0-9]{1,9}))?", re.ASCII)
 UINT = re.compile(r"[0-9]{1,20}", re.ASCII)
+RULE_FIELD = re.compile(r"!?([A-Za-z][A-Za-z0-9_.]*)\s*[!<>]?=")
+LABEL_NAME = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
 COUNTERS = Struct(">B5Q")
 UINT64_MAX = (1 << 64) - 1
 
@@ -42,6 +44,8 @@ class Capture:
     log: str
     sha256: str
     negative_evidence: str | None = None
+    label_rules: str | None = None
+    label_rules_sha256: str | None = None
 
 
 def nanoseconds(value):
@@ -143,6 +147,39 @@ def framed_key(values):
     return len(key).to_bytes(4, "big") + key
 
 
+def inspect_label_rules(path, expected_digest):
+    """Verify a NetflowLabeler sidecar and summarize predicates without their values."""
+    definitions, conditions, fields = Counter(), Counter(), defaultdict(Counter)
+    label = None
+    with path.open("rb") as source:
+        stat = fstat(source.fileno())
+        digest = file_digest(source, "sha256").hexdigest()
+        if digest != expected_digest:
+            raise ValueError("Label-rule SHA-256 does not match")
+        source.seek(0)
+        for ordinal, raw in enumerate(source, 1):
+            line = raw.decode("utf-8-sig").strip()
+            if not line or line.startswith("#"):
+                continue
+            if not line.startswith("-"):
+                label = line.rstrip(":").split(",", 1)[0].strip()
+                if not LABEL_NAME.fullmatch(label):
+                    raise ValueError(f"Invalid label declaration at rule line {ordinal}")
+                definitions[label] += 1
+                continue
+            predicates = [RULE_FIELD.match(part.strip()) for part in line[1:].split("&")]
+            if label is None or any(match is None for match in predicates):
+                raise ValueError(f"Unrecognized predicate at rule line {ordinal}")
+            conditions[label] += 1
+            fields[label].update(match.group(1).casefold() for match in predicates)
+        if file_identity(stat) != file_identity(fstat(source.fileno())):
+            raise ValueError("Label rules changed while scanning")
+    if not conditions:
+        raise ValueError("Label-rule file contains no conditions")
+    return {"sha256": digest, "bytes": stat.st_size, "label_sections": definitions,
+            "condition_lines": conditions, "predicate_fields": dict(fields)}
+
+
 def add_keys(row, clock, missing, counters, suffix, label, quality):
     values = []
     for name in FEATURES[1:]:
@@ -190,6 +227,7 @@ def scan_log(path, capture, counters, index):
     suffix = bytes((index,))
     raw, classes, eligible, missing, quality = (Counter() for _ in range(5))
     categories, eligible_categories, protocols = Counter(), Counter(), Counter()
+    protocols_by_class = defaultdict(Counter)
     first = last = None
     with path.open("r", encoding="utf-8-sig", newline="") as stream:
         if file_identity(fstat(stream.fileno())) != initial:
@@ -218,6 +256,7 @@ def scan_log(path, capture, counters, index):
             if label == 1:
                 categories[category] += 1
             protocols[row["proto"]] += 1
+            protocols_by_class[class_name][row["proto"]] += 1
             clock = None
             try:
                 clock = nanoseconds(row["ts"])
@@ -242,7 +281,8 @@ def scan_log(path, capture, counters, index):
         "first_start_unix_ns": first, "last_start_unix_ns": last,
         "raw_labels": raw, "classes": classes, "eligible": eligible,
         "categories": categories, "eligible_categories": eligible_categories,
-        "protocols": protocols, "missing": missing, "quality": quality,
+        "protocols": protocols, "protocols_by_class": dict(protocols_by_class),
+        "missing": missing, "quality": quality,
     }
 
 
@@ -287,18 +327,30 @@ def audit(manifest, *, chunk_bytes=16 * 1024 * 1024):
     if not 1 <= len(captures) <= 255 or len({item.capture_id for item in captures}) != len(captures):
         raise ValueError("expected 1 to 255 uniquely named capture entries")
     paths = [(root / item.log).resolve() for item in captures]
+    rule_paths = []
     for capture, path in zip(captures, paths, strict=True):
         if capture.role not in ROLES or not capture.original_group:
             raise ValueError("unknown role or missing original group")
         if not path.is_relative_to(root) or path.suffix != ".labeled":
             raise ValueError("each log must be a .labeled file inside the local manifest directory")
-    if len(set(paths)) != len(paths) or sum(path.stat().st_size for path in paths) > MAX_BYTES:
-        raise ValueError("capture logs repeat or exceed the 512 MiB audit budget")
+        if bool(capture.label_rules) != bool(capture.label_rules_sha256):
+            raise ValueError("each label-rule file needs a pinned SHA-256")
+        rule_path = (root / capture.label_rules).resolve() if capture.label_rules else None
+        if rule_path is not None and (not rule_path.is_relative_to(root) or rule_path.suffix != ".config"):
+            raise ValueError("each label-rule file must be a .config inside the local manifest directory")
+        rule_paths.append(rule_path)
+    input_paths = {*paths, *(path for path in rule_paths if path is not None)}
+    if len(set(paths)) != len(paths) or sum(path.stat().st_size for path in input_paths) > MAX_BYTES:
+        raise ValueError("capture logs repeat or audit inputs exceed 512 MiB")
+    rules = [inspect_label_rules(path, capture.label_rules_sha256) if path is not None else None
+             for capture, path in zip(captures, rule_paths, strict=True)]
     summaries, overlap_reports = [], {}
     with ExitStack() as stack:
         counters = {name: stack.enter_context(ExactGroupCounter(root, max_chunk_bytes=chunk_bytes)) for name in KEYS}
-        for index, (capture, path) in enumerate(zip(captures, paths, strict=True)):
-            summaries.append(scan_log(path, capture, counters, index))
+        for index, (capture, path, rule_report) in enumerate(zip(captures, paths, rules, strict=True)):
+            summary = scan_log(path, capture, counters, index)
+            summary["label_rules"] = rule_report
+            summaries.append(summary)
         for name, counter in counters.items():
             overlap = Overlap(captures)
             counter.finish(on_group=overlap.add)
