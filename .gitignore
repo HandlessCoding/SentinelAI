@@ -152,12 +152,16 @@ activemq-data/
 # Environments
 .env
 .envrc
-.venv
+.venv/
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Local datasets and trained models
+/data/
+/artifacts/
 
 # Conda environments
 conda-meta/
