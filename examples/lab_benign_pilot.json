@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "sessions": [
+    {
+      "capture_id": "g27-pilot-02",
+      "session_id": "g27-session-01-retry",
+      "seed": 2701,
+      "connections": [
+        {"method": "get", "requests": 2, "min_bytes": 64, "max_bytes": 300, "delay_ms": 40, "gap_ms": 100},
+        {"method": "post", "requests": 1, "min_bytes": 700, "max_bytes": 1500, "delay_ms": 10, "gap_ms": 60},
+        {"method": "udp", "requests": 2, "min_bytes": 32, "max_bytes": 90, "delay_ms": 10, "gap_ms": 100}
+      ]
+    }
+  ]
+}

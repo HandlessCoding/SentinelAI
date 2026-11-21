@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "sessions": [
+    {
+      "capture_id": "g27-expand-02",
+      "session_id": "g27-session-02",
+      "seed": 2702,
+      "connections": [
+        {"method": "get", "requests": 1, "min_bytes": 1200, "max_bytes": 2400, "delay_ms": 150, "gap_ms": 50},
+        {"method": "get", "requests": 4, "min_bytes": 10, "max_bytes": 250, "delay_ms": 20, "gap_ms": 35},
+        {"method": "post", "requests": 2, "min_bytes": 300, "max_bytes": 3000, "delay_ms": 60, "gap_ms": 80},
+        {"method": "udp", "requests": 3, "min_bytes": 70, "max_bytes": 170, "delay_ms": 10, "gap_ms": 70}
+      ]
+    },
+    {
+      "capture_id": "g27-expand-03",
+      "session_id": "g27-session-03",
+      "seed": 2703,
+      "connections": [
+        {"method": "get", "requests": 3, "min_bytes": 3000, "max_bytes": 9000, "delay_ms": 80, "gap_ms": 150},
+        {"method": "post", "requests": 1, "min_bytes": 8000, "max_bytes": 12000, "delay_ms": 110, "gap_ms": 70},
+        {"method": "get", "requests": 1, "min_bytes": 30, "max_bytes": 180, "delay_ms": 0, "gap_ms": 250},
+        {"method": "udp", "requests": 4, "min_bytes": 160, "max_bytes": 512, "delay_ms": 20, "gap_ms": 55},
+        {"method": "udp", "requests": 1, "min_bytes": 16, "max_bytes": 35, "delay_ms": 5, "gap_ms": 120}
+      ]
+    },
+    {
+      "capture_id": "g27-expand-04",
+      "session_id": "g27-session-04",
+      "seed": 2704,
+      "connections": [
+        {"method": "post", "requests": 3, "min_bytes": 40, "max_bytes": 360, "delay_ms": 30, "gap_ms": 200},
+        {"method": "get", "requests": 1, "min_bytes": 256, "max_bytes": 768, "delay_ms": 0, "gap_ms": 75},
+        {"method": "udp", "requests": 2, "min_bytes": 40, "max_bytes": 128, "delay_ms": 25, "gap_ms": 300},
+        {"method": "get", "requests": 2, "min_bytes": 1000, "max_bytes": 6000, "delay_ms": 200, "gap_ms": 300}
+      ]
+    }
+  ]
+}
