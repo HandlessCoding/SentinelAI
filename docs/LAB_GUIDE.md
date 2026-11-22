@@ -363,3 +363,164 @@ G28 remains deferred and G29 live attack collection remains blocked.
 Owner authorization and evidence availability govern the G35 pilot.
 [Archive audit](research/level-2/LEVEL_2_IOT23_CAPTURE_RECONCILIATION.md) ·
 [Official flow-source feasibility](research/level-2/LEVEL_2_DATA_RECOVERY_AND_FEASIBILITY.md)
+
+### G35 qualification result
+
+**Training blocked.** Six authorized original recordings provide 20 reviewed
+benign flows and zero reviewed attacks. The frozen Level 1 model, G32
+evaluations, official UNSW test rows, and reserved 2018 benchmark retain
+their existing roles. G35 produced an offline feature projection and ran no fit.
+
+| Verified original capture | Reviewed benign | Reviewed attack | Unknown | All seven present | TCP history present |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| g26-benign-01-reviewed | 1 | 0 | 0 | 1 | 1 |
+| g27-pilot-02 | 3 | 0 | 0 | 3 | 2 |
+| g27-expand-02 | 4 | 0 | 0 | 4 | 3 |
+| g27-expand-03 | 5 | 0 | 0 | 5 | 3 |
+| g27-expand-04 | 4 | 0 | 0 | 4 | 3 |
+| g29-control-01 | 3 | 0 | 0 | 3 | 2 |
+
+The G34 cohort command above verifies the PCAP, log, permission record,
+export receipt and review evidence. The original G26 registry alias has one
+unknown flow on the same PCAP and log. G25 and G29 synthetic fixtures
+are test inputs. The authorized recordings are local research evidence.
+The 20 reviewed records have 20 distinct typed vectors and 20 distinct
+direction-independent five-tuples, with zero keys shared across captures
+and zero observed label conflicts. The benign-only cohort cannot estimate
+cross-class ambiguity. All connection states were `SF`. The recordings
+come from six sessions with two devices, one sensor and one environment.
+Omitting identifiers from predictors leaves potential shortcuts through
+protocol, traffic volume, device behavior and capture setup.
+
+| Other local or publisher source | Eligibility and evidence |
+| --- | --- |
+| IoT-23 Kaggle conversion | The seven source columns exist. A structural projection preserves unset duration and checks types and scope, but exporter version/settings, exact conversions, raw row correspondence and review of infected-run negatives remain unresolved. The CSV's CC0 listing does not establish an override of the original attribution terms. Original run mapping is reconstructed from timestamps and label evidence. |
+| IoT-23 original release and v2 | The publisher lists original PCAPs and labeled Zeek logs. Original attribution terms apply to the original release. Confirm applicable v2 terms with the publisher. Revised expert labels use rules, and fragments of the three original benign runs stay grouped. Recovering the logs alone would still require extractor and label qualification. Earlier transfer attempts and coverage blockers are recorded in G21–G24. |
+| CTU-SME-11 v1.0.0 | Publisher CC BY 4.0. The pinned local Zeek test excerpt covers one Windows run and contains 44 publisher-benign, 719 publisher-malicious and 3 unknown flows. Structural v1 checks retain 39/719/3 respectively after five ICMP exclusions. Six durations are unset. The 761 eligible rows have 717 distinct vectors, 35 repeated keys and zero cross-label keys. Benign ground truth remains unverified. Known address-based rules and protocol separation create shortcut risk. Full-device packages need approval and the shared campaign window requires lineage review. |
+| NF-ToN-IoT-v2, corrected CIC-IDS2017 and UNSW-NB15 | Local tables are NetFlow, CICFlowMeter and Argus/Bro derivatives. Their prepared fields lack verified Zeek direction, segmentation, byte or state equivalence. CIC's prior chronology and rare-class losses and NF-ToN's capture grouping limits still apply. UNB offers original CIC PCAPs for research and requests citation. A Zeek re-export would require independently checked alignment with the published labels. |
+
+[IoT-23 publisher](https://www.stratosphereips.org/datasets-iot23) ·
+[Original release terms](https://mcfp.felk.cvut.cz/publicDatasets/IoT-23-Dataset/) ·
+[IoT-23 v2 catalog](https://mcfp.felk.cvut.cz/publicDatasets/IoT-23-Dataset-v2/) ·
+[CTU-SME-11 publisher](https://zenodo.org/records/7958259) ·
+[UNB CIC-IDS2017 release and terms](https://www.unb.ca/cic/datasets/ids-2017.html#license) ·
+[G22 pinned excerpt](research/level-2/LEVEL_2_DATA_RECOVERY_AND_FEASIBILITY.md#ctu-sme-11-fallback) ·
+[Corrected CIC counts by capture](research/level-2/LEVEL_2_CIC_AUDIT.md#full-audit-results) ·
+[G13–G34 research index](research/README.md)
+
+On the first 10,000 records per available Kaggle CSV, or the whole file for
+shorter files, there were 168,688 rows. All supplied four counters and a
+recognized connection state. Duration was absent on 100,346 rows, and
+570 rows were outside TCP/UDP scope, leaving 168,118 structurally eligible.
+There were 20,806 distinct eligible vectors, 1,598 shared across files and
+941 keys carrying both converted labels, affecting 96,272 rows. Seven
+files had within-file conflicts. These prefix measurements describe
+ambiguity under the conversion, with no full-corpus conflict estimate.
+G24's Hakai example has 8,222 TCP attack-labeled rows and 2,179 of its
+2,181 benign-labeled rows on UDP, so even protocol can proxy for a capture's
+collection and labeling process. G24 also found two direction-independent
+five-tuples shared between proposed roles, zero cross-role tuple-plus-start
+matches, and incomplete device and session lineage. Those candidate roles
+remain unqualified. [G24 cohort audit](research/level-2/LEVEL_2_IOT23_CAPTURE_RECONCILIATION.md#prespecified-cohort-and-gate-results)
+
+#### Exact local IoT-23 conversion counts
+
+The G24 streaming scanner counted every record and hashed each of the
+22 available CSVs. It found 30,856,271 benign-labeled and 294,449,249
+attack-labeled rows, zero unknowns and zero malformed label tails or row
+widths. Across those rows, 235,576,693 durations are unset and 54,895 rows
+use protocols outside TCP/UDP scope. Every row supplies protocol, state
+and the four counters. Full-file checks distinguish field presence and
+numeric parseability. The prefix audit above applies the contract's
+complete type and vocabulary checks.
+
+The inferred original-run mapping follows G24. Sixteen local infected-run
+histograms match the publisher's nonzero category counts. The publisher
+table omits two `C&C-Mirai` rows for 52-1 and 14 `FileDownload` rows for
+49-1 that appear locally. For 33-1, the conversion uses `Okiru` for
+13,609,467 rows published as `Okiru-Attack`. Each dedicated benign CSV
+contains nine fewer records than the publisher headline. Count agreement
+supports run mapping. Row-level provenance and label validity still
+need evidence. CSV 13 was absent locally. The earlier G23 inventory
+recorded 4,420 benign-labeled and 6 attack-labeled rows for that file.
+[IoT-23 publisher label tables](https://www.stratosphereips.org/datasets-iot23)
+
+| CSV | Inferred original run | Benign-labeled | Attack-labeled | Duration unset |
+| --- | --- | ---: | ---: | ---: |
+| 1 | Honeypot 4-1 | 452 | 0 | 1 |
+| 2 | Honeypot 5-1 | 1,374 | 0 | 298 |
+| 3 | Honeypot 7-1 | 130 | 0 | 0 |
+| 4 | 9-1 | 22,548 | 6,355,745 | 6,361,681 |
+| 5 | 8-1 | 2,181 | 8,222 | 6,185 |
+| 6 | 7-1 | 75,955 | 11,378,759 | 11,419,542 |
+| 7 | 60-1 | 2,476 | 3,578,552 | 3,580,404 |
+| 8 | 52-1 | 1,794 | 19,779,584 | 4 |
+| 9 | 49-1 | 3,665 | 5,406,896 | 1 |
+| 10 | 48-1 | 3,734 | 3,390,604 | 1 |
+| 11 | 44-1 | 211 | 26 | 81 |
+| 12 | 43-1 | 20,574,934 | 46,746,875 | 67,250,964 |
+| 13 | 42-1 | Absent | Absent | Absent |
+| 14 | 39-1 | 7,337 | 73,561,644 | 73,562,100 |
+| 15 | 36-1 | 2,663 | 13,642,435 | 13,635,427 |
+| 16 | 35-1 | 8,262,389 | 2,185,398 | 4,432,615 |
+| 17 | 34-1 | 1,923 | 21,222 | 17,824 |
+| 18 | 33-1 | 1,380,791 | 53,073,800 | 54,437,248 |
+| 19 | 3-1 | 4,536 | 151,567 | 73,944 |
+| 20 | 21-1 | 3,272 | 14 | 1,161 |
+| 21 | 20-1 | 3,193 | 16 | 885 |
+| 22 | 17-1 | 31,438 | 54,628,417 | 27 |
+| 23 | 1-1 | 469,275 | 539,473 | 796,300 |
+
+| Prespecified gate | G35 result |
+| --- | --- |
+| Original provenance and label integrity | Pass for lab extraction controls only. Publisher excerpt annotations are traceable to rules. Converted annotations and unmatched source/export lineage fail qualification. |
+| At least 1,000 eligible flows per class in each role, reviewable benign traffic, and at least two original positive development-validation runs | Fail. Total verified coverage is 20/0. Zero original positive runs. |
+| ≥50% retained per labeled class and supported category, no unexplained copied or linked traffic across roles | Unassessable for training roles. All reviewed lab rows are retained as controls. There are no eligible role cohorts or supported attack categories. |
+| Feature validity and leakage checks | Pass for extraction on the six benign controls. Unassessable for target class and role shifts. The converted labels conflict on exact vectors and capture dependence remains unresolved. |
+| Independent environment and low-FPR qualification | Unmet. A separate physical environment and the stronger 10,000 verified benign, 1,000 verified attack and three independent groups per class requirement still need evidence. |
+
+Keep all six lab runs together as extraction controls. For a future
+development cohort, assign complete original runs and linked device/session
+groups together. Use separate mixed groups for fitting, threshold
+calibration, comparison and sealed development validation, with the last
+containing at least two original positive runs plus reviewed benign traffic.
+Check copied traffic, vector and direction-independent tuple overlaps,
+class/category retention and device/environment concentration before
+fitting. Freeze preprocessing and candidate policy before opening detailed
+validation results. Reserve an additional independently instrumented
+physical environment for external validation.
+
+#### Offline TCP history projection
+
+`zeek-flow-history-v1` appends four nullable booleans, in order,
+`orig_data_seen`, `resp_data_seen`, `orig_reset_seen`, `resp_reset_seen`.
+They report literal, case-sensitive presence of `D`, `d`, `R`, `r` in
+Zeek 8.0.11's finalized TCP `history`. Repeated markers count once.
+`false` means the marker was absent in a recognized history. Missing,
+malformed, unsupported history and UDP yield null flags with separate
+coverage statuses. Direction follows Zeek's log, including its heuristic
+direction decisions. These are end-of-flow observations. The original
+seven-field contract is immutable.
+[Zeek 8.0.11 history definition](https://docs.zeek.org/en/v8.0.11/scripts/base/protocols/conn/main.zeek.html#type-Conn::Info)
+
+```powershell
+.\.venv\Scripts\python.exe -B -m ml.zeek_flow_history_v1 data/level2/capture-lab/g29 g29-control-01
+```
+
+All 14 eligible recorded TCP histories contain both payload markers and
+zero reset markers. The six UDP rows are out of scope for the extension.
+A separate header-level check of the G29 PCAP confirmed payload-bearing
+segments in both directions and zero RST flags in both TCP connections.
+The observed coverage is an extraction check. Attack detection performance
+remains unevaluated.
+
+**G36 recommendation.** Seek owner approval for a bounded preflight of
+already-recorded originals, or pinned Zeek exports with equivalent evidence
+when PCAP sharing is restricted. Require collection permission and exact
+terms, original capture and device/session lineage, sensor/settings and
+digests, UTC alignment, and independently reviewed positive and negative
+evidence. First verify one mixed source against the contract, then inventory
+enough independent runs to meet all four role gates before fitting. A later
+external validation requires a separately controlled physical site with its
+own sensor and devices, or an authorized owner who can provide equivalent
+recordings. Expanded transfers and VM or lab changes require approval.
