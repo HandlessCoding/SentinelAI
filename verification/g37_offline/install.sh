@@ -12,7 +12,7 @@ cd /stage
 sha256sum -c SHA256SUMS
 printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d
 chmod 755 /usr/sbin/policy-rc.d
-apt-get --no-download --no-install-recommends -y install /stage/debs/*.deb
+apt-get --no-install-recommends -y install /stage/debs/*.deb
 while IFS= read -r root; do
   test "$(dpkg-query -W -f='${Version}' "${root%%=*}")" = "${root#*=}"
 done < /stage/apt-roots

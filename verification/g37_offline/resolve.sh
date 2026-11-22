@@ -3,6 +3,7 @@ set -euo pipefail
 test "$(dpkg --print-architecture)" = amd64
 . /etc/os-release
 test "$VERSION_CODENAME" = noble
+dpkg-query -W -f='G37_BASE ${Package}\t${Version}\t${Architecture}\n'
 mkdir -p /stage/debs/partial
 chmod 755 /stage/debs/partial
 cat > /etc/apt/sources.list.d/ubuntu.sources <<'EOF'
