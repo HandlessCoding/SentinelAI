@@ -4,8 +4,8 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
-    BigInteger, CheckConstraint, DateTime, Double, ForeignKey, Index, String, Text,
-    UniqueConstraint, func,
+    BigInteger, Boolean, CheckConstraint, DateTime, Double, ForeignKey, Index, String, Text,
+    UniqueConstraint, func, text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -77,8 +77,12 @@ class ZeekCapture(Base):
     __table_args__ = (
         UniqueConstraint("pcap_sha256", name="uq_zeek_captures_pcap_sha256"),
         UniqueConstraint("conn_sha256", name="uq_zeek_captures_conn_sha256"),
-        CheckConstraint("flow_count BETWEEN 1 AND 10000", name="ck_zeek_captures_flow_count"),
-        CheckConstraint("source IN ('authorized_lab', 'authorized_archive')", name="ck_zeek_captures_source"),
+        CheckConstraint(
+            "(source IN ('authorized_lab', 'authorized_archive') AND flow_count BETWEEN 1 AND 10000 "
+            "AND pcap_sha256 IS NOT NULL AND conn_sha256 IS NOT NULL) OR "
+            "(source IN ('recorded_replay', 'connected_sensor') AND flow_count >= 0 "
+            "AND pcap_sha256 IS NULL AND conn_sha256 IS NULL)", name="ck_zeek_captures_provenance",
+        ),
     )
 
     capture_id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -87,10 +91,10 @@ class ZeekCapture(Base):
     observation_point: Mapped[str] = mapped_column(String(64))
     source: Mapped[str] = mapped_column(String(24))
     zeek_version: Mapped[str] = mapped_column(String(128))
-    pcap_sha256: Mapped[str] = mapped_column(String(64))
-    conn_sha256: Mapped[str] = mapped_column(String(64))
+    pcap_sha256: Mapped[str | None] = mapped_column(String(64))
+    conn_sha256: Mapped[str | None] = mapped_column(String(64))
     manifest_sha256: Mapped[str] = mapped_column(String(64))
-    flow_count: Mapped[int]
+    flow_count: Mapped[int] = mapped_column(BigInteger)
     imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -98,14 +102,21 @@ class ZeekFlow(Base):
     __tablename__ = "zeek_flows"
     __table_args__ = (
         UniqueConstraint("capture_id", "source_row", name="uq_zeek_flows_source_row"),
+        UniqueConstraint("capture_id", "stream_key", name="uq_zeek_flows_stream_key"),
         CheckConstraint("source_row > 0 AND timestamp_ns >= 0", name="ck_zeek_flows_provenance"),
         CheckConstraint("ground_truth IN ('benign', 'attack', 'unknown')", name="ck_zeek_flows_ground_truth"),
         Index("ix_zeek_flows_order", "timestamp_ns", "id"),
+        Index("ix_zeek_flows_ingested", "ingested_at", "id"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     capture_id: Mapped[str] = mapped_column(ForeignKey("zeek_captures.capture_id"))
-    source_row: Mapped[int]
+    source_row: Mapped[int] = mapped_column(BigInteger)
+    stream_key: Mapped[str | None] = mapped_column(String(64))
+    source_file: Mapped[str | None] = mapped_column(String(64))
+    source_offset: Mapped[int | None] = mapped_column(BigInteger)
+    ingested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    insert_xid: Mapped[str] = mapped_column(Text, server_default=text("pg_current_xact_id()::text"))
     timestamp_ns: Mapped[int] = mapped_column(BigInteger)
     proto: Mapped[str] = mapped_column(String(24))
     conn_state: Mapped[str | None] = mapped_column(String(24))
@@ -134,3 +145,30 @@ class ZeekFlow(Base):
         seconds, nanos = divmod(self.timestamp_ns, 10**9)
         timestamp = datetime(1970, 1, 1, tzinfo=UTC) + timedelta(seconds=seconds)
         return f"{timestamp:%Y-%m-%dT%H:%M:%S}.{nanos:09d}Z"
+
+    @property
+    def source(self):
+        return self.capture.source
+
+
+class ZeekStream(Base):
+    __tablename__ = "zeek_streams"
+
+    capture_id: Mapped[str] = mapped_column(ForeignKey("zeek_captures.capture_id"), primary_key=True)
+    replay_capture_id: Mapped[str | None] = mapped_column(String(64))
+    replay_conn_sha256: Mapped[str | None] = mapped_column(String(64))
+    file_identity: Mapped[str | None] = mapped_column(String(64))
+    last_drained_file: Mapped[str | None] = mapped_column(String(64))
+    byte_offset: Mapped[int] = mapped_column(BigInteger, default=0)
+    anchor: Mapped[str | None] = mapped_column(String(64))
+    discarding: Mapped[bool] = mapped_column(Boolean, default=False)
+    rows_seen: Mapped[int] = mapped_column(BigInteger, default=0)
+    rejected_rows: Mapped[int] = mapped_column(BigInteger, default=0)
+    duplicate_rows: Mapped[int] = mapped_column(BigInteger, default=0)
+    backlog_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    status: Mapped[str] = mapped_column(String(24), default="starting")
+    last_error: Mapped[str | None] = mapped_column(String(48))
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_ingested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    capture: Mapped[ZeekCapture] = relationship()

@@ -13,7 +13,7 @@ import { Traffic } from './Traffic'
 const pages = {
   overview: { label: 'Overview', icon: LayoutDashboard, title: 'Security overview', detail: 'Track model detections and the investigations they lead to.' },
   alerts: { label: 'Alerts', icon: ShieldAlert, title: 'Alerts', detail: 'Review and triage suspected attacks from saved analyses.' },
-  traffic: { label: 'Network Traffic', icon: Network, title: 'Network traffic', detail: 'Inspect offline Zeek flows, their capture evidence, and rule-based findings.' },
+  traffic: { label: 'Network Traffic', icon: Network, title: 'Network traffic', detail: 'Inspect Zeek flows, source health, reviewed labels, and rule findings.' },
   incidents: { label: 'Incidents', icon: FileSearch, title: 'Incidents', detail: 'Open an investigation, link alerts, and update its status.' },
   notes: { label: 'Analyst Notes', icon: NotebookPen, title: 'Analyst notes', detail: 'Read and add notes within an investigation.' },
   analyze: { label: 'Analyze', icon: ScanLine, title: 'Analyze records', detail: 'Score prepared network records with the local Random Forest model.' },

@@ -26,13 +26,14 @@ suspected attacks into investigations with notes. [UNSW-NB15 dataset](https://re
 The controlled lab verifies isolation, records authorized traffic, and extracts
 Zeek-native flow features with pinned capture and labeling evidence. G27 verified
 four benign sessions, 266 packets, and 16 labeled flows across one VM pair.
-G30 can import verified Zeek recordings into the dashboard's offline
-**Network Traffic** view. Rule findings, reviewed capture labels, and the
-Level 1 model's suspected-attack alerts appear separately. G32 uses a
+**Network Traffic** shows offline imports and continuous Zeek ingestion
+health. G36 verified continuous ingestion with authorized recorded replay.
+Rule findings, reviewed capture labels, and Level 1 alerts appear separately. G32 uses a
 four-way UNSW-NB15 development split for experimental ML. Independent device
 and environment validation remains pending for live flow performance.
 [G27 results](docs/research/lab/LEVEL_2_G27_BENIGN_COLLECTION.md) ·
-[Offline import](docs/DATABASE_SETUP.md#import-reviewed-zeek-flows-offline)
+[Offline import](docs/DATABASE_SETUP.md#import-reviewed-zeek-flows-offline) ·
+[Continuous ingestion](docs/DATABASE_SETUP.md#run-continuous-zeek-ingestion)
 
 ## Architecture and technologies
 

@@ -524,3 +524,27 @@ enough independent runs to meet all four role gates before fitting. A later
 external validation requires a separately controlled physical site with its
 own sensor and devices, or an authorized owner who can provide equivalent
 recordings. Expanded transfers and VM or lab changes require approval.
+
+### G36 continuous replay verification
+
+The replay test appended the six authorized G26, G27 and G29 logs to
+disposable files. The background worker processed them into a disposable PostgreSQL schema. All
+20 reviewed benign flows matched the offline importer on observed time,
+protocol, state, label, and rule finding. There were zero findings and
+zero alerts. Each source reported one pending byte before its partial
+first line was completed and zero pending bytes after processing.
+
+Across two replay runs, append-to-FastAPI visibility was 0.83–1.04 seconds
+for the small batches, with 3.3–3.4 flows/s including idle polling.
+These numbers describe the recorded replay workload. The reliability tests
+also exercised concurrent checkpoint use, rollback before commit and
+restart, duplicate input, a 4 MiB unterminated line, and rename rotation
+with a temporarily missing archive. The dashboard polling test checks
+that new flows and health appear without a page reload.
+
+Ready for a supervised, authorized isolated pilot after confirming the
+sensor's local JSON file handoff and rotation retention. Native live
+sensor behavior and production throughput remain unmeasured. G28
+independent-environment validation remains deferred and G29 live attack
+collection remains blocked. The worker uses no model for Zeek flows.
+[Worker setup and replay commands](DATABASE_SETUP.md#run-continuous-zeek-ingestion)

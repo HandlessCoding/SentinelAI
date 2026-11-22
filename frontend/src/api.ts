@@ -62,11 +62,14 @@ export interface PreparedCsv {
 }
 
 export type ZeekProtocol = 'tcp' | 'udp' | 'icmp' | 'unknown_transport'
+export type TrafficSource = 'authorized_lab' | 'authorized_archive' | 'recorded_replay' | 'connected_sensor'
 
 export interface TrafficFlow {
   id: string
   capture_id: string
   source_row: number
+  source: TrafficSource
+  ingested_at: string | null
   observed_at: string
   proto: ZeekProtocol
   conn_state: string | null
@@ -80,6 +83,8 @@ export interface TrafficFlow {
 }
 
 export interface TrafficDetail extends TrafficFlow {
+  source_file: string | null
+  source_offset: number | null
   history: string | null
   duration_ns: string | null
   orig_pkts: string | null
@@ -93,8 +98,8 @@ export interface TrafficDetail extends TrafficFlow {
   label_reason: string
   capture: {
     session_id: string; environment_id: string; observation_point: string
-    source: 'authorized_lab' | 'authorized_archive'; zeek_version: string; imported_at: string
-    pcap_sha256: string; conn_sha256: string; manifest_sha256: string
+    source: TrafficSource; zeek_version: string; imported_at: string
+    pcap_sha256: string | null; conn_sha256: string | null; manifest_sha256: string
   }
 }
 
@@ -102,6 +107,27 @@ export interface TrafficSummary {
   total_flows: number
   finding_count: number
   protocols: { protocol: ZeekProtocol; count: number }[]
+}
+
+export interface TrafficMonitoring {
+  recent_flows: number
+  recent_findings: number
+  protocols: TrafficSummary['protocols']
+  sources: {
+    capture_id: string
+    source: 'recorded_replay' | 'connected_sensor'
+    status: 'ready' | 'waiting' | 'blocked' | 'stale' | 'starting'
+    backlog_bytes: number | null
+    rejected_rows: number
+    duplicate_rows: number
+    last_error: string | null
+    heartbeat_at: string | null
+    last_success_at: string | null
+    last_ingested_at: string | null
+    replay_capture_id: string | null
+    replay_conn_sha256: string | null
+  }[]
+  more_sources: boolean
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -121,8 +147,9 @@ export const api = {
   health: (signal?: AbortSignal) => request<{ status: 'ok' }>('/health', { signal }),
   model: (signal?: AbortSignal) => request<ModelInfo>('/model/info', { signal }),
   trafficSummary: (signal?: AbortSignal) => request<TrafficSummary>('/traffic/summary', { signal }),
+  trafficMonitoring: (signal?: AbortSignal) => request<TrafficMonitoring>('/traffic/monitoring', { signal }),
   trafficFlows: (query: URLSearchParams, signal?: AbortSignal) =>
-    request<{ flows: TrafficFlow[]; next_offset: number | null }>('/traffic/flows?' + query, { signal }),
+    request<{ flows: TrafficFlow[]; page_cursor: string; next_cursor: string | null }>('/traffic/flows?' + query, { signal }),
   trafficFlow: (id: string, signal?: AbortSignal) =>
     request<TrafficDetail>('/traffic/flows/' + encodeURIComponent(id), { signal }),
   async alerts(signal?: AbortSignal) {
