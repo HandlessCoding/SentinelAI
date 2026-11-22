@@ -594,3 +594,288 @@ The report command reads current checkpoints and the final run saves
 
 [Extended runner](../../../ml/run_unsw_extended.py) ·
 [Synthetic regression tests](../../../tests/test_unsw_extended.py)
+
+## G33 error analysis and qualification
+
+G32 is the four-way, training-only development study. G32.1 and G32.2
+reuse only its 100,199 original fitting rows. G32.1 completed 27
+configurations across 135 folds. G32.2 completed 184 discovery
+configurations, 24 seed-replication jobs, and two challenge jobs across
+1,042 folds, with zero failed or missing jobs. It took about 4 hours and
+48 minutes and peaked at 597 MiB of resident memory. The audit reconciled
+both reports with their checkpoints, verified the fitting snapshot and
+split audits, recomputed discovery-only selection, and checked the two
+challenge markers and decision policies. Neither the original G32 final
+validation partition, the official UNSW test partition, nor the reserved
+2018 benchmark was opened for G33. [Checkpoint verifier](../../../ml/verify_unsw_research.py)
+
+### Frozen internal challenge
+
+The challenge used 5,333 normal and 11,364 attack rows. Counts and scores
+below are from G32.2. No new challenge predictions or threshold decisions
+were made. These observations share the UNSW capture and feature-export
+lineage used for fitting. The challenge was locked within G32.2, and G32.1
+had already studied the underlying G32 fitting pool.
+
+| Candidate | Isotonic threshold | TN / FP / FN / TP | Recall | FPR | Precision | Accuracy | Balanced accuracy |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| HGB-34 Full | 0.712124 | 5,009 / 324 / 504 / 10,860 | 95.56% | 6.08% | 97.10% | 95.04% | 94.74% |
+| HGB-35 No TTL | 0.669014 | 5,017 / 316 / 514 / 10,850 | 95.48% | 5.93% | 97.17% | 95.03% | 94.78% |
+
+Both met the 95% recall floor and missed the 5% FPR target. At this normal
+support, a 5% FPR allows at most 266 false positives. HGB-34 exceeded that
+count by 58 and HGB-35 by 50. The threshold role realized 95.29% recall and
+7.33% FPR for HGB-34 and 95.13% recall and 6.90% FPR for HGB-35. Those
+thresholds were selected to minimize FPR while satisfying the 95% recall
+floor on that role. A recall-constrained threshold cannot guarantee a
+separate FPR target. Precision here reflects an attack share of 68.06%.
+
+| Challenge slice | Normal / attack support | HGB-34 FP / FN | HGB-35 FP / FN |
+| --- | ---: | ---: | ---: |
+| TCP | 3,705 / 3,881 | 232 / 410 | 220 / 422 |
+| UDP | 1,329 / 4,783 | 92 / 94 | 96 / 92 |
+| Service `-` | 3,516 / 6,179 | 265 / 431 | 261 / 437 |
+| HTTP | 501 / 1,257 | 49 / 54 | 43 / 56 |
+| DNS | 715 / 3,098 | 1 / 0 | 2 / 0 |
+| Source TTL 128–254 | 1,085 / 9,865 | 292 / 455 | 287 / 467 |
+| Source TTL below 32 | 4,035 / 20 | 0 / 0 | 1 / 0 |
+
+These slices overlap. TCP accounted for the most misses for both
+candidates, and the high source-TTL band accounted for about 90% of false
+positives in each. That band's FPR was 26.91% and 26.45%, respectively.
+Lower TTL ranges had different class and traffic mixes. Several protocol
+buckets contained traffic from only one class. This concentration remains
+after TTL removal and warrants checking correlated features and capture
+conditions. The aggregate checkpoints cannot identify which individual
+rows changed decisions or provide challenge-level attack-category recalls.
+
+### Stability and TTL sensitivity
+
+Each candidate was scored across 15 discovery evaluations using three
+seeds. The table uses the frozen operating policy for each candidate.
+Ranges are observed fold extrema. The repeated partitions share the same
+rows, so the ranges do not quantify uncertainty across independent captures.
+
+| Discovery candidate | Mean recall (min–max) | Mean FPR (min–max) | Mean precision | Mean accuracy |
+| --- | ---: | ---: | ---: | ---: |
+| HGB-34 Full | 95.65% (95.003–96.66%) | 7.12% (5.72–8.59%) | 96.63% | 94.77% |
+| HGB-28 Full | 95.71% (95.003–97.10%) | 7.18% (5.87–9.41%) | 96.60% | 94.79% |
+| HGB-35 No TTL | 95.60% (95.011–96.53%) | 7.19% (5.82–8.68%) | 96.60% | 94.71% |
+| HGB-34 No Source TTL | 95.73% (95.12–96.51%) | 7.20% (6.10–8.33%) | 96.59% | 94.79% |
+| RF-14 No Source TTL | 95.63% (94.93–96.55%) | 7.51% (6.32–9.23%) | 96.45% | 94.63% |
+| LR-05 Full | 95.98% (94.91–97.14%) | 12.95% (11.18–15.47%) | 94.05% | 93.13% |
+
+Across seeds 32242, 32267, and 32291, HGB-34's mean recall/FPR pairs were
+95.38%/6.81%, 95.84%/7.37%, and 95.75%/7.17%. HGB-35's were
+95.35%/6.89%, 95.59%/7.26%, and 95.86%/7.41%. Neither hit 5% FPR
+on any discovery fold. Challenge raw AUC was 0.99237 (fitting sample
+0.99794) and 0.99244 (fitting sample 0.99888), respectively. Ranking
+separation remains strong, while the in-sample gap and fold spread
+counsel caution about estimating future error rates.
+
+HGB-34 Full has 42 predictors, 300 iterations, 0.035 learning rate, L2 of
+4.0, and balanced class weights. HGB-35 excludes `sttl`, `dttl`, and
+`ct_state_ttl` and uses 235 iterations, 0.055 learning rate, L2 of 1.5,
+and normal/attack weights of 1.35/1.0. Both use up to 63 leaves and a
+12-row minimum leaf. This recipe comparison cannot isolate a TTL effect.
+With the same recipe and raw 96.5% recall calibration policy, eliminating
+the three TTL fields raised mean FPR for 39 of 48 HGB recipes (median
+change +0.124 percentage points) and 25 of 26 forests (median +0.163
+points). All eight Logistic Regression recipes had higher mean FPR
+(median +3.890 points). HGB's median recall change was −0.054 points.
+TTL and surrounding context retain signal within this dataset. Source
+TTL, window sizes, state, and history counters can also encode exporter
+and lab conditions. This study cannot establish how much of their signal
+will survive another environment.
+
+### Discovery error replay and calibration
+
+The audit replayed only seed 32242 for the frozen recipes, using their
+original fitting and probability roles and exact saved fold thresholds.
+All ten confusion matrices and fold Brier scores matched the checkpoints.
+The reporting code covers 83,502 discovery rows (26,669 normal and
+56,833 attack), with one out-of-fold prediction per row per candidate.
+It joins `attack_cat` only for analysis and writes only aggregate statistics
+under ignored `data/`. The challenge figures above come from saved aggregates.
+[Replay and reporting utility](../../../ml/audit_unsw_qualification.py)
+
+| Discovery replay | HGB-34 Full | HGB-35 No TTL |
+| --- | ---: | ---: |
+| TN / FP / FN / TP | 24,854 / 1,815 / 2,626 / 54,207 | 24,831 / 1,838 / 2,641 / 54,192 |
+| Raw → isotonic Brier score | 0.036274 → 0.034445 | 0.034809 → 0.034692 |
+| Raw → isotonic ECE (10 equal-width bins) | 0.01850 → 0.00353 | 0.00619 → 0.00256 |
+| Median FP calibrated score (5th–95th percentile) | 0.750 (0.627–0.972) | 0.773 (0.640–0.967) |
+| Median FN calibrated score (5th–95th percentile) | 0.480 (0.213–0.590) | 0.465 (0.234–0.602) |
+| Singleton vectors and their FP / FN | 43,391, with 1,365 / 2,171 | 43,389, with 1,380 / 2,153 |
+| Repeated same-label vectors and their FP / FN | 4,541, with 316 / 387 | 4,542, with 329 / 411 |
+| Conflicting vectors and their FP / FN | 112, with 134 / 68 | 112, with 129 / 77 |
+
+Conflict groups contain 503 rows in both feature sets. A deterministic
+classifier on either contract must make at least 172 errors on those rows.
+Most errors occur on singleton vectors. Exact conflicts alone explain only
+a small share, even before accounting for near-duplicates or common
+capture lineage. Isotonic mapping improved the pooled discovery
+probability metrics for both models. The bins above 0.9 contain about
+59% of all discovery rows. HGB-34's 0.1–0.2 bin has an average score of
+0.167 and observed attack share of 0.242 on 198 rows. Errors include
+high-confidence false positives. The challenge checkpoints record Brier
+scores of 0.031921 and 0.031959 and log losses of 0.102024 and 0.101532.
+Calibration on independent data with a different attack prevalence
+remains unverified.
+
+The median FP duration was 0.698 s for HGB-34 and 0.708 s for HGB-35, versus
+0.035 s for true normals in both. FN duration medians were 0.609 s and
+0.624 s, versus 9 microseconds for true positives in both. False positives
+had a median source TTL of 254 and true normals a median of 31 for both.
+For HGB-34, destination bytes in false positives had a 5th–95th percentile
+range of 0–1,302 and median of 354, versus 0–63,516 and median 1,644 in
+true normals. The ranges overlap. Traffic mix and flow semantics may
+explain part of these associations, so these summaries do not identify
+single-feature causes.
+
+| Discovery attack category | Support | HGB-34 misses | HGB-35 misses |
+| --- | ---: | ---: | ---: |
+| Fuzzers | 8,803 | 2,282 | 2,273 |
+| Analysis | 973 | 120 | 124 |
+| Exploits | 16,148 | 174 | 194 |
+| DoS | 6,053 | 25 | 25 |
+| Shellcode | 532 | 9 | 10 |
+| Reconnaissance | 4,236 | 7 | 7 |
+| Generic | 19,161 | 5 | 3 |
+| Backdoor | 859 | 4 | 5 |
+| Worms | 68 | 0 | 0 |
+
+Both models missed Fuzzers, Analysis, and Exploits in all five discovery
+folds at this seed. Fuzzers recall was 74.08% and 74.18%. Analysis recall
+was 87.67% and 87.26%. This concentration helps explain why strong overall
+recall can hide important gaps. Worms support is too small to infer
+reliable transfer from zero misses.
+
+To reproduce the audit locally from the repository root, keep the original
+G32.1/G32.2 checkpoints and fitting snapshots in their existing ignored
+directories. Use a fresh output filename on repeat runs.
+
+```powershell
+$env:LOKY_MAX_CPU_COUNT = '3'
+$env:OMP_NUM_THREADS = '2'
+$env:OPENBLAS_NUM_THREADS = '2'
+& .\.venv\Scripts\python.exe -B -m ml.audit_unsw_qualification --output data/g33/verified.json
+& .\.venv\Scripts\python.exe -B -m ml.audit_unsw_qualification --replay-discovery --output data/g33/discovery.json
+```
+
+### UNSW-to-Zeek feature compatibility
+
+The prepared UNSW models use a 42-predictor contract. The publisher used
+Argus, Bro, and additional feature-generation algorithms. SentinelAI's
+offline flow store preserves Zeek observation fields, including optional
+counters. No full-model or No TTL input can currently be reconstructed
+from those fields with verified equivalence.
+[UNSW-NB15 publisher](https://research.unsw.edu.au/projects/unsw-nb15-dataset) ·
+[Zeek 8.0.11 connection fields](https://docs.zeek.org/en/v8.0.11/scripts/base/protocols/conn/main.zeek.html#type-Conn::Info) ·
+[SentinelAI Zeek parser](../../../ml/lab_zeek.py)
+
+| UNSW predictors | Zeek input and reproducibility |
+| --- | --- |
+| `dur` | `duration_ns` can be converted to seconds when present. Validate flow boundaries, timeout behavior, and UNSW duration semantics before using it. |
+| `proto` | Protocol is observed. Verify a shared token set, including ICMP handling. UNSW tokens such as `arp` and `unas` cannot be assumed to map to the same Zeek vocabulary. |
+| `spkts`, `dpkts` | `orig_pkts` and `resp_pkts` are available where observed. Validate direction, partial flows, and packet accounting. |
+| `sbytes`, `dbytes` | Zeek records directional IP bytes and payload-oriented bytes separately. Exporter reference values are needed to establish equivalent counting. |
+| `service`, `state` | Zeek application detection and `conn_state` use exporter-specific semantics. No validated vocabulary crosswalk exists. Missing service differs from a literal UNSW `-` token. |
+| `rate`, `sload`, `dload`, `smean`, `dmean` | Need validated input counters, exact formulas and units, and handling of zero or missing duration. Similar names do not specify those choices. |
+| `sttl`, `dttl` | Absent from the current connection logs. Would require validated packet-level sampling and direction. |
+| `sloss`, `dloss`, `sinpkt`, `dinpkt`, `sjit`, `djit` | Need the exporter's directional packet timing, loss and jitter semantics. Zeek `missed_bytes` is a byte observation, so it cannot supply directional packet losses. |
+| `swin`, `dwin`, `stcpb`, `dtcpb`, `tcprtt`, `synack`, `ackdat` | Require exporter-matched TCP windows, sequence bases, and handshake timing. These fields are absent from the ingested connection schema. |
+| `trans_depth`, `response_body_len`, `is_ftp_login`, `ct_ftp_cmd`, `ct_flw_http_mthd` | Would require application transaction logs, verified aggregation and join keys, and reproduction of the original categorical FTP encodings. |
+| `ct_srv_src`, `ct_state_ttl`, `ct_dst_ltm`, `ct_src_dport_ltm`, `ct_dst_sport_ltm`, `ct_dst_src_ltm`, `ct_src_ltm`, `ct_srv_dst` | Need the original history, order, grouping, and boundaries. A snapshot of connection rows does not recover that context. Any future derivation must be causal and must respect capture boundaries. |
+| `is_sm_ips_ports` | Could be derived from endpoint metadata only after validating same-address and same-port semantics, missing operands, tunneling, and direction. |
+
+Protocol, duration, and packet counts are the first candidates for a
+reference parity check. Service, state, bytes, and history features
+remain unverified. Removing three TTL predictors still leaves 39
+features and the principal gaps. The experimental HGB pipeline fits
+ordinal encodings for protocol, service, state, and FTP login, and feeds
+finite numeric predictors through unchanged. It supports an internal
+missing code for unknown categories through its encoder. The proposed
+offline input validator should reject and count unrecognized or missing
+inputs until that behavior is explicitly qualified for the target export.
+Feature values such as the original `-` service and FTP tokens must remain
+verbatim. [Experimental preprocessing](../../../ml/unsw_overnight_models.py)
+
+### Offline qualification, latency, and rollback
+
+On the local Windows machine, timing the warm preprocessing, fitted
+HGB, and isotonic map of the first replay fold gave the following
+milliseconds per batch. The test used two native threads and measured
+resident pipeline calls. File parsing, artifact load, input validation,
+database, and HTTP time are outside these results.
+
+| Candidate | One row, median / p95 (40 calls) | 100 rows, median / p95 (25 calls) |
+| --- | ---: | ---: |
+| HGB-34 Full | 12.90 / 14.67 ms | 16.53 / 17.80 ms |
+| HGB-35 No TTL | 14.09 / 16.31 ms | 17.86 / 21.29 ms |
+
+1. Use an opt-in offline CLI only after its input exporter is verified.
+   It reads bounded batches of compatible records and checks ordered
+   columns, types, finite values, categorical vocabulary, and exporter
+   version. Invalid inputs fail closed with reportable counts. Keep row
+   identifiers and evidence metadata outside predictors, and store
+   score outputs separately from alerts, rule findings, and ground truth.
+2. A future local package should bind preprocessing, fitted weights,
+   calibrator, and inclusive threshold to an immutable version. Its
+   manifest should capture ordered feature semantics, dependency versions,
+   training row and split digests, seeds, artifact checksums, and the
+   approved operating policy. Verify the manifest and artifact against an
+   approved local digest before loading. The process must accept only trusted
+   locally produced packages, since pickle loading can execute code.
+   G33 creates aggregate evidence and no new package.
+3. Qualification starts with HGB-34 Full and its frozen isotonic policy
+   (`attack_score >= 0.7121240935619471`) and uses HGB-35 No TTL at
+   `attack_score >= 0.6690140845070423` as the prespecified comparator.
+   These thresholds belong to the exact challenge-fit pipelines and
+   calibrators. Deterministic reconstruction would have to verify the
+   original non-challenge fit/probability identities and reference scores,
+   with no threshold refit. Any refit on different data requires a new
+   candidate ID and independently scoped qualification.
+4. Keep the experimental path disabled in application configuration.
+   A future approved shadow run should record import coverage, rejection
+   reasons, latency, and drift with reviewed outcome checks. Disable it
+   on manifest, feature parity, or coverage failure. A future switch
+   must be reversible by disabling the experimental worker and restoring
+   the known package pointer. Level 1 continues serving the frozen Random
+   Forest with threshold 0.5, and alert/incident APIs remain unchanged.
+
+### G34 recommendation
+
+Existing G26 evidence has one reviewed benign flow, and G27/G29 have
+19 reviewed benign flows across five sessions. They share the same
+physical host and lab device pair, use Zeek-native flow semantics, and
+include zero independently reviewed real attacks. They can check parser
+behavior and coverage for observed fields. They cannot qualify an UNSW
+model or support cross-environment detection estimates. G28 stays
+deferred. G29 live attack collection remains **blocked**.
+[Lab and evidence protocol](../../LAB_GUIDE.md#matched-control-and-label-validation)
+
+The smallest useful G34 experiment is an offline **exporter parity test**.
+Process one existing authorized benign PCAP through Zeek and a trusted
+reference exporter with documented UNSW field semantics. Freeze that
+packet input, versions, direction alignment, exact categorical and counter
+criteria, timing tolerance, and missing-field rules before comparison.
+Check protocol, duration, packet counts and both byte definitions first,
+then report what fraction of either model contract can be verified.
+If the reference exporter or full contract cannot be reproduced, take the
+separate Zeek-native research path and qualify that feature contract using
+independently labeled offline flows. Do not run either HGB on guessed
+conversions.
+
+For subsequent dataset-generalization validation, lock the model package
+and policy before scoring two or more independently recorded,
+feature-compatible campaigns with reviewed normal and attack coverage.
+Use original capture/device/environment identities and exact-vector
+overlap checks to assess independence. Predeclare category support and
+report per-capture counts and uncertainty, including when the support is
+too small to verify the 95% recall and 5% FPR targets. Report precision
+with attack prevalence. The parity test establishes feature behavior on
+its workload only. Live-network evaluation would separately require
+authorized passive collection, representative traffic, and independent
+review of misses and false alarms. No model is ready for Zeek integration
+at G33.
