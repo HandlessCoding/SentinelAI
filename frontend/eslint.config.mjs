@@ -4,6 +4,11 @@ import tseslint from 'typescript-eslint'
 
 export default [
   {
+    files: ['e2e/**/*.mjs'],
+    languageOptions: { globals: { console: 'readonly', process: 'readonly', URL: 'readonly' } },
+    rules: { 'no-undef': 'error', 'no-unused-vars': 'error' },
+  },
+  {
     files: ['src/**/*.{ts,tsx}', 'vite.config.ts'],
     languageOptions: {
       parser: tseslint.parser,
