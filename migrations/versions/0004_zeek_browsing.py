@@ -1,8 +1,7 @@
 """Record acknowledged Zeek rotations and support stable flow browsing."""
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "0004_zeek_browsing"
 down_revision = "0003_zeek_streams"

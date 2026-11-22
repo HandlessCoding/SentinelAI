@@ -1,8 +1,8 @@
 """Validate a bounded CSV upload and prepare it for the existing batch APIs."""
 
+import json
 from io import StringIO
 from itertools import batched
-import json
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -15,11 +15,13 @@ from backend.investigation_schemas import AnalysisReceipt
 from backend.investigations import Database, stored_receipt
 from backend.models import PredictionBatch
 from backend.request_limits import MAX_JSON_BYTES, validate_body_headers
-from backend.schemas import ErrorResponse, MAX_BATCH_SIZE
+from backend.schemas import MAX_BATCH_SIZE, ErrorResponse
 from ml.inference import (
-    FEATURE_TYPES, InputValidationError, read_prediction_rows, validated_batch,
+    FEATURE_TYPES,
+    InputValidationError,
+    read_prediction_rows,
+    validated_batch,
 )
-
 
 router = APIRouter()
 MAX_CSV_BYTES = 2 * 1024 * 1024

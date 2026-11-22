@@ -1,8 +1,7 @@
 """Create prediction batches, suspected-attack alerts, incidents and notes."""
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "0001_alert_investigations"
 down_revision = None

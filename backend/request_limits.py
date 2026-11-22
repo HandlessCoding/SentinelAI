@@ -3,7 +3,6 @@
 from fastapi import HTTPException, Request
 from fastapi.routing import APIRoute
 
-
 MAX_JSON_BYTES = 2 * 1024 * 1024
 SIZE_ERROR = "JSON request bodies must be at most 2 MiB."
 

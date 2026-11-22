@@ -1,16 +1,16 @@
 """Continuously ingest a local Zeek JSON log into PostgreSQL."""
 
 import argparse
+import json
+import os
+import stat
+import sys
 from contextlib import ExitStack
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from decimal import Decimal
 from hashlib import sha256
-import json
-import os
 from pathlib import Path
-import stat
-import sys
 from threading import Event
 from typing import BinaryIO, NamedTuple
 
@@ -25,7 +25,6 @@ from backend.zeek_ingest import MAX_ARTIFACT_BYTES, MAX_ROWS, flow_values
 from ml.lab_capture import capture_rows
 from ml.lab_registry import identifier, lab_path, load_verified_capture
 from ml.lab_zeek import parse_flow
-
 
 MAX_LINE_BYTES = 64 * 1024
 MAX_BATCH_BYTES = 256 * 1024

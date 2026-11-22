@@ -1,8 +1,7 @@
 """Add offline Zeek capture provenance and connection records."""
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "0002_zeek_traffic"
 down_revision = "0001_alert_investigations"

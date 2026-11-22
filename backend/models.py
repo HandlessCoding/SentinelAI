@@ -4,8 +4,18 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
-    BigInteger, Boolean, CheckConstraint, DateTime, Double, ForeignKey, Index, String, Text,
-    UniqueConstraint, func, text,
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Double,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 

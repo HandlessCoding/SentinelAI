@@ -1,13 +1,12 @@
 """Shared prediction and request fingerprinting for prepared network batches."""
 
-from hashlib import sha256
 import json
 import logging
+from hashlib import sha256
 
 from fastapi import HTTPException
 
-from ml.inference import InputValidationError, OPTIONAL_METADATA_COLUMNS
-
+from ml.inference import OPTIONAL_METADATA_COLUMNS, InputValidationError
 
 # Keep the prediction logger name stable across the route refactor.
 logger = logging.getLogger("backend.routes")

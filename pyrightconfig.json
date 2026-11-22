@@ -1,0 +1,5 @@
+{
+  "include": ["backend/database.py", "backend/request_limits.py", "backend/batch_processing.py"],
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "standard"
+}

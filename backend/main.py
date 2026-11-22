@@ -1,7 +1,7 @@
 """Create the FastAPI application and load the model during startup."""
 
-from contextlib import asynccontextmanager
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -17,7 +17,6 @@ from backend.routes import router
 from backend.schemas import MAX_BATCH_SIZE
 from backend.traffic import router as traffic_router
 from ml.inference import DEFAULT_ARTIFACT_DIR, FROZEN_PIPELINE_SHA256, load_model
-
 
 logger = logging.getLogger(__name__)
 
