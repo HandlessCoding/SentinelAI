@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "status": "planned_pending_guest_verification",
+  "fixture": {
+    "revision": "1622a01df4a8cc48ca26979380959337bd167dc0",
+    "sha256_lf": "260dbe4e2884c4a98c1e3bb1ad90427541bf51b772a230a06062d48606cf701a",
+    "transactions_per_session": 5,
+    "flows": ["tcp", "tcp", "udp"],
+    "connection_profiles": ["get", "post", "udp"]
+  },
+  "sensor": {
+    "source_id": "g37-pilot-sensor",
+    "site": "isolated-lab",
+    "observation_point": "g37-sensor-internal-link",
+    "postgres_host": "127.0.0.1",
+    "alembic_revision": "0004_zeek_browsing",
+    "zeek_baseline_version": "8.0.11",
+    "conn_log_format": "json",
+    "connection_size_analyzer": true,
+    "capture_scope": "approved_benign_fixture_only",
+    "read_current_guest_inventory_before_pinning_bundle": true,
+    "active_log": "conn.log",
+    "retained_generation": "conn.log.1",
+    "vcpus": 1,
+    "ram_mib": 2048
+  },
+  "phases": {
+    "baseline": {"session": "g37-baseline-session", "capture": "g37-baseline", "seconds": 180},
+    "normal": {"session": "g37-normal-session", "capture": "g37-normal", "seconds": 180},
+    "recovery_old": {"session": "g37-old-session", "capture": "g37-recovery-old", "unread_flows": 3},
+    "recovery_new": {"session": "g37-new-session", "capture": "g37-recovery-new", "unread_flows": 3}
+  },
+  "measurement": {
+    "clock": "guest_monotonic",
+    "poll_ms": 100,
+    "resource_sample_ms": 1000,
+    "launch_within_seconds": 5,
+    "flow_completion_timeout_seconds": 180,
+    "persist_within_seconds": 5,
+    "heartbeat_within_seconds": 15,
+    "recover_within_seconds": 60,
+    "duplicate_within_seconds": 60,
+    "cpu_minute_busy_limit_percent_exclusive": 90,
+    "min_available_memory_mib": 256,
+    "min_available_filesystem_mib": 1024,
+    "max_unexplained_rejections": 0,
+    "max_observed_packet_drop_increase": 0,
+    "max_swap_counter_increase": 0,
+    "max_new_oom_events": 0
+  }
+}
