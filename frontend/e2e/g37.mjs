@@ -3,7 +3,7 @@ import { appendFile, rename, writeFile } from 'node:fs/promises'
 import AxeBuilder from '@axe-core/playwright'
 import { chromium, expect } from '@playwright/test'
 
-const [origin, log, csv] = process.argv.slice(2)
+const [origin, log, csv, historical] = process.argv.slice(2)
 assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/)
 
 function flow(index) {
@@ -137,6 +137,12 @@ async function csvAndNavigation(page) {
   })
   assert.equal(conflict.status(), 409)
   await verifyAccessibility(page)
+  await page.getByLabel('CSV file').setInputFiles(historical)
+  await page.getByRole('button', { name: 'Analyze CSV' }).click()
+  await expect(page.getByText('5 of 5 records scored')).toBeVisible()
+  await save.click()
+  await expect(page.getByText('5 of 5 records submitted · 1 saved alerts')).toBeVisible()
+  assert.equal(writes.length, 3)
   await page.getByRole('link', { name: 'Alerts', exact: true }).focus()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { name: 'Alerts', exact: true })).toBeVisible()
@@ -188,8 +194,10 @@ async function incidentWorkflow(page) {
   const finished = page.waitForResponse(
     (response) => response.url().endsWith('/api/incidents') && response.request().method() === 'POST',
   )
+  const refreshed = page.waitForResponse((response) => response.url().endsWith('/api/model/info'))
   release.resolve()
   await (await finished).finished()
+  await (await refreshed).finished()
   await expect(page).toHaveURL(origin + '/#alerts')
   await page.getByRole('link', { name: 'Incidents', exact: true }).click()
   await expect(page.getByRole('link', { name: /Late synthetic incident/ })).toBeVisible()

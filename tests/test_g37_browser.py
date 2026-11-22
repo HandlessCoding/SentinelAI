@@ -5,6 +5,7 @@ import socket
 import subprocess
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Event
@@ -18,6 +19,7 @@ from starlette.staticfiles import StaticFiles
 from test_investigations import ROOT, PostgreSQLSchemaTestCase
 from test_workflow_reliability import make_csv, oversized_csv_records
 
+from backend.batch_processing import request_digest
 from backend.models import Alert, PredictionBatch, ZeekFlow, ZeekStream
 from backend.zeek_stream import Source, run_worker
 from verification.g37 import flow_identity
@@ -55,6 +57,8 @@ class DashboardBrowserTests(PostgreSQLSchemaTestCase):
             log = Path(folder) / "conn.log"
             csv = Path(folder) / "synthetic.csv"
             csv.write_bytes(make_csv(oversized_csv_records()))
+            legacy = Path(folder) / "historical.csv"
+            self.seed_historical_receipt(legacy)
             source = Source("g37-browser", log, "browser", "development", "fixture", "synthetic")
             log.write_bytes(b"")
             listener.bind(("127.0.0.1", 0))
@@ -67,7 +71,7 @@ class DashboardBrowserTests(PostgreSQLSchemaTestCase):
             try:
                 self.wait_for_http(origin, serving)
                 subprocess.run(
-                    ["node", "frontend/e2e/g37.mjs", origin, str(log), str(csv)],
+                    ["node", "frontend/e2e/g37.mjs", origin, str(log), str(csv), str(legacy)],
                     cwd=ROOT,
                     check=True,
                     timeout=90,
@@ -108,5 +112,22 @@ class DashboardBrowserTests(PostgreSQLSchemaTestCase):
         self.assertCountEqual(rows, [(key, "unknown") for key in expected])
         self.assertEqual(state.last_drained_file, f"{archive.st_dev:x}:{archive.st_ino:x}")
         self.assertEqual((state.byte_offset, state.backlog_bytes), (log.stat().st_size, 0))
-        self.assertEqual(self.count(PredictionBatch), 2)
-        self.assertEqual(self.count(Alert), 5)
+        self.assertEqual(self.count(PredictionBatch), 3)
+        self.assertEqual(self.count(Alert), 6)
+
+    def seed_historical_receipt(self, csv):
+        records = [dict(record, dur=str(index + 100)) for index, record in enumerate(oversized_csv_records())]
+        digest = request_digest(records)
+        csv.write_bytes(make_csv(records))
+        with Session(self.engine) as db, db.begin():
+            batch = PredictionBatch(
+                idempotency_key=f"csv-{digest}-1",
+                request_sha256=digest,
+                record_count=len(records),
+                model_version="fixture-rf",
+                decision_threshold=0.5,
+                prediction_timestamp=datetime.now(UTC),
+            )
+            db.add(batch)
+            db.flush()
+            db.add(Alert(batch_id=batch.id, record_index=2, attack_probability=0.8))

@@ -60,9 +60,10 @@ class SyntheticBenchmark(PostgreSQLSchemaTestCase):
             log.touch()
             stop = Event()
             source = Source("g37-benchmark", log, "benchmark", "development", "fixture", "synthetic")
+            started = monotonic_ns()
             worker = pool.submit(run_worker, self.engine, source, stop)
             try:
-                self.wait_for_commit(worker, source, 0)
+                ready, _ = self.wait_for_commit(worker, source, 0)
                 cpu_started = process_time()
                 lifecycle = self.measure_latency(log, source, worker)
                 paced = self.measure_paced_input(log, source, worker)
@@ -83,6 +84,7 @@ class SyntheticBenchmark(PostgreSQLSchemaTestCase):
             "postgres": postgres,
             "migration": revision,
             "poll_target_ms": POLL_SECONDS * 1000,
+            "worker_start_to_first_committed_checkpoint_ms": round((ready - started) / 1e6, 3),
             "latency": lifecycle,
             "worker_and_harness_cpu_seconds": round(cpu_seconds, 3),
             "worker_and_harness_peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
@@ -117,7 +119,7 @@ class SyntheticBenchmark(PostgreSQLSchemaTestCase):
     def measure_latency(self, log, source, worker):
         latencies = []
         visibility = []
-        with self.make_client(synthetic_predictions) as http:
+        with self.make_client(synthetic_predictions) as http, ThreadPoolExecutor(max_workers=1) as api:
             for index in range(1, 6):
                 row = synthetic_rows(index, 1)
                 expected_key = flow_identity(row).stream_key
@@ -127,6 +129,7 @@ class SyntheticBenchmark(PostgreSQLSchemaTestCase):
                 with log.open("rb") as reader:
                     reader.seek(-1, os.SEEK_END)
                     self.assertNotEqual(reader.read(), b"\n")
+                visible = api.submit(self.wait_for_api, http, index)
                 with log.open("ab") as writer:
                     writer.write(b"\n")
                 with log.open("rb") as reader:
@@ -135,10 +138,17 @@ class SyntheticBenchmark(PostgreSQLSchemaTestCase):
                 complete = monotonic_ns()
                 committed, _ = self.wait_for_commit(worker, source, log.stat().st_size, expected_key)
                 latencies.append(persistence_upper_bound_ns(last_incomplete, complete, committed))
-                page = http.get("/traffic/flows", params={"limit": 1}).raise_for_status().json()
-                self.assertEqual(page["flows"][0]["source_row"], index)
-                visibility.append(monotonic_ns() - last_incomplete)
-        return {"committed_read": latency_stats(latencies), "subsequent_api_read": latency_stats(visibility)}
+                visibility.append(max(complete, visible.result(timeout=10)) - last_incomplete)
+        return {"committed_read": latency_stats(latencies), "independent_api_read": latency_stats(visibility)}
+
+    def wait_for_api(self, http, source_row):
+        deadline = monotonic_ns() + 10_000_000_000
+        while monotonic_ns() < deadline:
+            page = http.get("/traffic/flows", params={"limit": 1}).raise_for_status().json()
+            if page["flows"] and page["flows"][0]["source_row"] == source_row:
+                return monotonic_ns()
+            sleep(POLL_SECONDS)
+        self.fail(f"Expected synthetic source row {source_row} did not become visible through FastAPI")
 
     def measure_paced_input(self, log, source, worker):
         started = monotonic_ns()
@@ -187,10 +197,15 @@ class SyntheticBenchmark(PostgreSQLSchemaTestCase):
                 writer.write(payload)
             committed, backlog = self.wait_for_commit(worker, source, log.stat().st_size)
             self.assertEqual(self.count(ZeekFlow), total)
+            with self.engine.connect() as connection:
+                relation_bytes = connection.exec_driver_sql(
+                    "SELECT pg_total_relation_size('zeek_flows')"
+                ).scalar_one()
             results.append(
                 {
                     "rows": total,
                     "appended_bytes": len(payload),
+                    "database_flow_relation_and_indexes_bytes": relation_bytes,
                     "max_observed_worker_backlog_bytes": backlog,
                     "burst_commits_per_second": round((total - rows) * 1e9 / (committed - started), 2),
                     "queries": self.measure_queries(),
@@ -254,4 +269,12 @@ class SyntheticBenchmark(PostgreSQLSchemaTestCase):
             "postgres_execution_ms": round(sum(plan["Execution Time"] for plan in plans), 3),
             "postgres_shared_hit_blocks": sum(plan["Plan"]["Shared Hit Blocks"] for plan in plans),
             "postgres_shared_read_blocks": sum(plan["Plan"]["Shared Read Blocks"] for plan in plans),
+            "postgres_plan_nodes": [self.plan_nodes(plan["Plan"]) for plan in plans],
         }
+
+    def plan_nodes(self, plan):
+        fields = ("Node Type", "Index Name", "Relation Name", "Sort Method", "Actual Rows")
+        node = {field: plan[field] for field in fields if field in plan}
+        if "Plans" in plan:
+            node["children"] = [self.plan_nodes(child) for child in plan["Plans"]]
+        return node
