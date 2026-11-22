@@ -8,6 +8,7 @@ from time import perf_counter, sleep
 import json
 import os
 import tracemalloc
+from unittest.mock import Mock
 
 from sqlalchemy import event
 from sqlalchemy.orm import Session
@@ -43,6 +44,9 @@ class ZeekStreamTests(PostgreSQLSchemaTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
+    def traffic_client(self):
+        return self.make_client(prediction=Mock(side_effect=AssertionError("traffic must not call model inference")))
+
     def wait_for(self, load, accept):
         deadline = perf_counter() + 10
         while perf_counter() < deadline:
@@ -53,7 +57,7 @@ class ZeekStreamTests(PostgreSQLSchemaTestCase):
         self.fail("background ingestion did not reach the expected state")
 
     def test_restart_partial_lines_malformed_rows_and_duplicate_replay(self):
-        with self.make_client() as client:
+        with self.traffic_client() as client:
             self.ingest()
             self.assertEqual(self.health(client)["sources"][0]["status"], "waiting")
             first, second = record(1), record(2)
@@ -93,7 +97,7 @@ class ZeekStreamTests(PostgreSQLSchemaTestCase):
         retained = self.root / "retained"
         self.path.rename(retained)
         self.path.write_bytes(first + record(3))
-        with self.make_client() as client:
+        with self.traffic_client() as client:
             self.ingest()
             self.assertEqual(self.health(client)["sources"][0]["last_error"], "rotated_file_missing")
             self.assertEqual(self.count(ZeekFlow), 1)
@@ -150,7 +154,7 @@ class ZeekStreamTests(PostgreSQLSchemaTestCase):
         self.ingest(source)
         with Session(self.engine) as db:
             import_capture(db, registry, spec["capture_id"])
-        with self.make_client() as client:
+        with self.traffic_client() as client:
             self.assertEqual(self.health(client)["sources"][0]["rejected_rows"], 1)
             flows = client.get("/traffic/flows", params={"source": "recorded_replay"}).json()["flows"]
             self.assertEqual(len(flows), 3)
@@ -167,7 +171,7 @@ class ZeekStreamTests(PostgreSQLSchemaTestCase):
         captures = [(g26, "g26-benign-01-reviewed"), (g27, "g27-pilot-02"), (g27, "g27-expand-02"),
                     (g27, "g27-expand-03"), (g27, "g27-expand-04"), (g29, "g29-control-01")]
         latencies, backlog_bytes = [], []
-        with self.make_client() as client, ThreadPoolExecutor(max_workers=1) as pool:
+        with self.traffic_client() as client, ThreadPoolExecutor(max_workers=1) as pool:
             for index, (root, capture_id) in enumerate(captures):
                 manifest, _ = load_verified(root, capture_id)
                 log = lab_path(root, manifest["capture"]["conn_log"])

@@ -534,9 +534,9 @@ protocol, state, label, and rule finding. There were zero findings and
 zero alerts. Each source reported one pending byte before its partial
 first line was completed and zero pending bytes after processing.
 
-Across the six small replay batches, append-to-FastAPI visibility was
-0.89–1.04 seconds and the observed rate was 3.3 flows/s including idle
-polling. These numbers describe this replay run. The reliability tests
+Across two replay runs, append-to-FastAPI visibility was 0.83–1.04 seconds
+for the small batches, with 3.3–3.4 flows/s including idle polling.
+These numbers describe the recorded replay workload. The reliability tests
 also exercised concurrent checkpoint use, rollback before commit and
 restart, duplicate input, a 4 MiB unterminated line, and rename rotation
 with a temporarily missing archive. The dashboard polling test checks
