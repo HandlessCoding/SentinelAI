@@ -1,6 +1,6 @@
 # Store G37 flows in sensor-local PostgreSQL
 
-**Accepted topology, offline provisioning design, and hard acceptance gates.** Bundle preparation, media attachment, installation, and pilot execution require separate authorization.
+**Accepted topology, offline provisioning design, rehearsal prerequisite, and hard acceptance gates.** Bundle preparation, clone creation, media attachment, installation, rehearsal, and pilot execution require separate authorization.
 
 ## Decision and rationale
 
@@ -20,6 +20,12 @@ Deliver one versioned bundle as a read-only VirtualBox ISO if the sensor can mou
 4. **Handle failure.** Stop on incompatible versions, invalid signatures or digests, unresolved dependencies, an unsuitable ISO attachment, an isolation check failure, or a failed install or verification step. Save diagnostics and leave the pilot stopped. After a partial install, assess and use an approved clean baseline before retrying. Prepare and verify a revised bundle if needed. Any alternate offline transport or infrastructure change requires separate approval.
 
 The manifest and verification procedure can be reused for later sensors with a matching baseline. Each sensor receives its own locally provisioned credentials, identity, and database state. Add fleet tooling when a multi-sensor deployment requires it.
+
+### Required offline installation rehearsal
+
+1. **Prepare a disposable clone.** Verify enough host disk space for the clone and its expected growth, and enough host memory for the rehearsal, before creating it. Clone the existing clean Ubuntu sensor baseline with its own writable storage and fresh disposable database state. Preserve the original VM and its snapshots. Keep the clone isolated from the pilot network and external networks, with NAT, bridged, and host-only networking disabled. Verify isolation before starting the install.
+2. **Prove the offline install.** Verify publisher signatures where available, the ISO and artifact SHA-256 digests, pinned versions, and dependency completeness. Follow the recorded offline procedure to install the pinned Zeek, PostgreSQL, Python dependencies, and SentinelAI revision. Initialize an empty database, apply the pinned migrations, start the worker, and use a benign local fixture to confirm that a flow and its checkpoint commit successfully. Verify installed versions and isolation again at the end. This rehearsal establishes bundle reproducibility and basic ingestion. The pilot separately measures live capture and recovery.
+3. **Gate pilot provisioning on the result.** Record the baseline, bundle digest, test outcomes, and any install failure, missing dependency, version mismatch, or reproducibility problem. Preserve diagnostics in authorized local storage and keep pilot provisioning blocked until the exact bundle and procedure pass from the clean baseline. Repeat the rehearsal after changes to the bundle, baseline, or procedure. Preserve the evidence before any authorized cleanup, then discard only the clone and its own artifacts.
 
 ## Declared workload and measurement windows
 
