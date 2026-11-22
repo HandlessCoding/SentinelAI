@@ -81,7 +81,7 @@ the dashboard. [Capture evaluation gates](research/level-2/LEVEL_2_CAPTURE_DATA_
 
 ### G36.5 engineering audit before G37
 
-G36.5 is planned. Start it on a dedicated branch after explicit approval to close the current Grill With Docs session. Follow the [major milestone workflow](../AGENTS.md#major-milestone-workflow). Complete G36.5 and obtain approval before implementing the [G37 isolated pilot](adr/0002-g37-sensor-local-postgresql.md).
+Grill With Docs for G37 is complete. G36.5 planning is next, on a dedicated branch when authorized. Follow the [major milestone workflow](../AGENTS.md#major-milestone-workflow). Complete G36.5 and obtain approval before implementing the [G37 isolated pilot](adr/0002-g37-sensor-local-postgresql.md).
 
 Audit G1 through G36 across the backend and frontend, PostgreSQL schemas and API contracts, Zeek ingestion and capture processing, ML pipelines and feature and evaluation contracts, security, dependencies, tests, CI, and documentation. Look for dead or duplicated code, unnecessary complexity, and outdated or contradictory docs. Use the [glossary](../GLOSSARY.md) to reconcile terminology while preserving distinct concepts. Prioritize changes with clear engineering benefits and verification.
 

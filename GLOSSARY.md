@@ -7,8 +7,17 @@ SentinelAI observes network activity, surfaces evidence for analyst review, and 
 **Site**:
 The authorized network environment covered by a monitoring deployment. The isolated lab is the site for the first pilot.
 
+**Sensor**:
+An instance that observes traffic at an observation point and produces network telemetry.
+
 **Observation point**:
 The location within a site from which a sensor observes traffic. It identifies the vantage point that produced the observation.
+
+**Ingestion source**:
+An identified stream of observations submitted for ingestion. It can carry observations from a connected sensor or from a recorded replay.
+
+**Checkpoint**:
+The durable progress record for an ingestion source, used to resume processing after an interruption.
 
 **Passive monitoring**:
 Observation of traffic exchanged by other systems, without probing or intervening in those exchanges.

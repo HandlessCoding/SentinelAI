@@ -1,6 +1,6 @@
 # Start with a passive, single-site Zeek pilot
 
-**Accepted.** Pilot execution and validation are pending.
+**Accepted.** Pilot execution and validation are pending. [G37 deployment and acceptance criteria](0002-g37-sensor-local-postgresql.md)
 
 SentinelAI's first operational milestone is a supervised, passive Zeek monitoring pilot at one site, the existing isolated and authorized lab. Keep the lab isolated, and obtain explicit approval before connecting to any real external network. Size the pilot to its current needs and revisit multi-site deployment when operating evidence establishes the requirements.
 
