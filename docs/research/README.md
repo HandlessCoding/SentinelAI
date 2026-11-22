@@ -32,6 +32,7 @@ at each milestone. Their setup commands describe those runs. Use the
 | G22 | [Capture recovery and feasibility](level-2/LEVEL_2_DATA_RECOVERY_AND_FEASIBILITY.md) |
 | G24 | [IoT-23 v1 capture reconciliation and overlap](level-2/LEVEL_2_IOT23_CAPTURE_RECONCILIATION.md) |
 | G32 | [Four-way UNSW-NB15 development experiment](level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g32-unsw-nb15-development-restart) |
+| G32.1 | [Unattended fitting-only experiments](level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g321-unattended-fitting-only-research) |
 
 ## Controlled lab records
 

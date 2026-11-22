@@ -410,3 +410,84 @@ wall time and 128.14 seconds process CPU time, with about 765 MiB peak
 resident memory. The frozen experimental pipeline is 433,132 bytes. The
 candidate fits emitted no warnings. The recorded run used Python 3.12.3,
 scikit-learn 1.7.2, and the existing [pinned dependencies](../../../ml/requirements-baseline.txt).
+
+## G32.1 unattended fitting-only research
+
+The runner verifies the original G32 partition archive by SHA-256 and reads
+only its `fit` member. It streams the pinned training CSV as bytes for the
+integrity check and copies only the 100,199 selected data lines into ignored
+storage. Features and labels are parsed from that fitting-only copy. G32's
+calibration, comparison, and final development rows supply no model input.
+The UNSW official test CSV and the reserved 2018 benchmark stay sealed.
+
+The full plan crosses nine recipes with three feature sets for **27
+configurations**. Recipes include histogram gradient boosting, Random Forest,
+and Logistic Regression with bounded complexity, regularization, and class
+weights. XGBoost and LightGBM were absent from the existing environment.
+The feature sets retain all predictors, remove `sttl`, `dttl`, and
+`ct_state_ttl`, or additionally remove the remaining `ct_*` fields and
+`is_sm_ips_ports`. The smallest feature set defines exact-vector groups.
+Five rotations assign one fold to evaluation, the next to calibration, and
+the remaining three to fitting. Each rotation verifies disjoint groups across
+all feature sets, at least 500 rows per class and role, and attack share within
+10 percentage points of the fitting-only input. All original fitting rows are
+retained in the plan.
+
+The detached run's preflight passed. It verified 32,002 normal and 68,197
+attack rows and zero group overlap in all five rotations. Evaluation folds
+contain 6,400–6,401 normal rows and 13,639–13,640 attack rows. Removing the
+context fields enlarged the biggest exact-vector group from 415 to 6,711
+rows. The common grouping keeps that complete group on one side of each
+boundary. The separate smoke run completed ten folds across two configurations
+on 6,000 fitting-only rows with zero failures.
+
+Each threshold minimizes calibration FPR at a recall floor of 95%. Ranking
+prefers configurations that hold the recall floor on every evaluation fold,
+then lowest mean and worst-fold FPR. If none passes, the report ranks by
+highest minimum recall and marks the shortfall. The report pairs ablations
+with the corresponding full-feature recipe and gives fold-wise recall and FPR
+differences. Full-feature runs also measure permutation importance on 384
+evaluation rows per fold. TTL sensitivity and context-feature sensitivity are
+diagnostics for possible shortcuts. They cannot establish environmental
+transfer. Fold ranges and standard deviations describe stability across the
+five rotations, which share fitting rows across rotations.
+
+From the repository root, run the smoke test before starting the hidden
+Windows worker. All paths below are ignored local storage.
+
+```powershell
+$env:LOKY_MAX_CPU_COUNT = '3'
+$env:OMP_NUM_THREADS = '2'
+$env:OPENBLAS_NUM_THREADS = '2'
+$env:MKL_NUM_THREADS = '2'
+$env:BLIS_NUM_THREADS = '2'
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_overnight run --smoke --output data/g32-1-smoke
+$python = (Resolve-Path .venv/Scripts/python.exe).Path
+Start-Process -FilePath $python -ArgumentList @('-B','-m','ml.run_unsw_overnight','run') `
+    -WorkingDirectory (Get-Location).Path -WindowStyle Hidden `
+    -RedirectStandardOutput data/g32-1-launch.stdout.log `
+    -RedirectStandardError data/g32-1-launch.stderr.log
+```
+
+The full run checkpoints under `data/g32-1-overnight/`. The runner uses one
+candidate at a time, up to three forest workers, and two native threads.
+The watchdog stops at the eight-hour wall deadline or when observed peak
+resident memory reaches 8 GiB. Results already published remain available.
+`state.json` records the Python worker PID. `report.json` is refreshed after
+each terminal configuration. The `report` command assembles the current
+report from all durable checkpoints, including incomplete configurations.
+
+```powershell
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_overnight status
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_overnight report
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_overnight stop
+```
+
+The stop command requests a checkpoint-boundary stop. A native fit may need
+to return before the worker can act. To resume, repeat the run command with
+the original code and directory. The runner retains the original deadline
+and skips saved folds and terminal configurations. G33 needs a prespecified
+validation protocol and new independent, feature-compatible captures before
+any exploratory winner can support a generalization claim.
+[Runner](../../../ml/run_unsw_overnight.py) ·
+[Synthetic tests](../../../tests/test_unsw_overnight.py)
