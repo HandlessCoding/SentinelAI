@@ -410,3 +410,187 @@ wall time and 128.14 seconds process CPU time, with about 765 MiB peak
 resident memory. The frozen experimental pipeline is 433,132 bytes. The
 candidate fits emitted no warnings. The recorded run used Python 3.12.3,
 scikit-learn 1.7.2, and the existing [pinned dependencies](../../../ml/requirements-baseline.txt).
+
+## G32.1 unattended fitting-only research
+
+The runner verifies the original G32 partition archive by SHA-256 and reads
+only its `fit` member. It streams the pinned training CSV as bytes for the
+integrity check and copies only the 100,199 selected data lines into ignored
+storage. Features and labels are parsed from that fitting-only copy. G32's
+calibration, comparison, and final development rows supply no model input.
+The UNSW official test CSV and the reserved 2018 benchmark stay sealed.
+
+The full plan crosses nine recipes with three feature sets for **27
+configurations**. Recipes include histogram gradient boosting, Random Forest,
+and Logistic Regression with bounded complexity, regularization, and class
+weights. XGBoost and LightGBM were absent from the existing environment.
+The feature sets retain all predictors, remove `sttl`, `dttl`, and
+`ct_state_ttl`, or additionally remove the remaining `ct_*` fields and
+`is_sm_ips_ports`. The smallest feature set defines exact-vector groups.
+Five rotations assign one fold to evaluation, the next to calibration, and
+the remaining three to fitting. Each rotation verifies disjoint groups across
+all feature sets, at least 500 rows per class and role, and attack share within
+10 percentage points of the fitting-only input. All original fitting rows are
+retained in the plan.
+
+The detached run's preflight passed. It verified 32,002 normal and 68,197
+attack rows and zero group overlap in all five rotations. Evaluation folds
+contain 6,400–6,401 normal rows and 13,639–13,640 attack rows. Removing the
+context fields enlarged the biggest exact-vector group from 415 to 6,711
+rows. The common grouping keeps that complete group on one side of each
+boundary. The separate smoke run completed ten folds across two configurations
+on 6,000 fitting-only rows with zero failures.
+
+Each threshold minimizes calibration FPR at a recall floor of 95%. Ranking
+prefers configurations that hold the recall floor on every evaluation fold,
+then lowest mean and worst-fold FPR. If none passes, the report ranks by
+highest minimum recall and marks the shortfall. The report pairs ablations
+with the corresponding full-feature recipe and gives fold-wise recall and FPR
+differences. Full-feature runs also measure permutation importance on 384
+evaluation rows per fold. TTL sensitivity and context-feature sensitivity are
+diagnostics for possible shortcuts. They cannot establish environmental
+transfer. Fold ranges and standard deviations describe stability across the
+five rotations, which share fitting rows across rotations.
+
+From the repository root, run the smoke test before starting the hidden
+Windows worker. All paths below are ignored local storage.
+
+```powershell
+$env:LOKY_MAX_CPU_COUNT = '3'
+$env:OMP_NUM_THREADS = '2'
+$env:OPENBLAS_NUM_THREADS = '2'
+$env:MKL_NUM_THREADS = '2'
+$env:BLIS_NUM_THREADS = '2'
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_overnight run --smoke --output data/g32-1-smoke
+$python = (Resolve-Path .venv/Scripts/python.exe).Path
+Start-Process -FilePath $python -ArgumentList @('-B','-m','ml.run_unsw_overnight','run') `
+    -WorkingDirectory (Get-Location).Path -WindowStyle Hidden `
+    -RedirectStandardOutput data/g32-1-launch.stdout.log `
+    -RedirectStandardError data/g32-1-launch.stderr.log
+```
+
+The full run checkpoints under `data/g32-1-overnight/`. The runner uses one
+candidate at a time, up to three forest workers, and two native threads.
+The watchdog stops at the eight-hour wall deadline or when observed peak
+resident memory reaches 8 GiB. Results already published remain available.
+`state.json` records the Python worker PID. `report.json` is refreshed after
+each terminal configuration. The `report` command assembles the current
+report from all durable checkpoints, including incomplete configurations.
+
+```powershell
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_overnight status
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_overnight report
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_overnight stop
+```
+
+The stop command requests a checkpoint-boundary stop. A native fit may need
+to return before the worker can act. To resume, repeat the run command with
+the original code and directory. The runner retains the original deadline
+and skips saved folds and terminal configurations. G33 needs a prespecified
+validation protocol and new independent, feature-compatible captures before
+any exploratory winner can support a generalization claim.
+[Runner](../../../ml/run_unsw_overnight.py) ·
+[Synthetic tests](../../../tests/test_unsw_overnight.py)
+
+## G32.2 extended overnight study
+
+### What G32.1 showed
+
+G32.1 finished 27 configurations and 135 folds in about 15 minutes. None
+held 95% recall on all five evaluation folds. Logistic Regression without TTL
+had the highest worst-fold recall (94.90%) and 15.97% mean FPR. The reference
+gradient-boosted model achieved 95.02% mean recall and 6.43% mean FPR, with
+94.53% worst-fold recall. Its calibration recall was close to the 95% floor
+each time. Fold 1 moved from 5.30% calibration FPR to 7.33% evaluation FPR,
+and fold 5 fell from 95.00% calibration recall to 94.53% evaluation recall.
+That variation motivates a recall buffer and a separate threshold role. The
+fold summaries cannot identify a cause for individual errors.
+
+Source TTL dominated the reference boosted model's permutation diagnostic
+(0.372 mean balanced-accuracy drop). Removing TTL changed its mean FPR
+by only −0.003 percentage points and mean recall by −0.059 points, consistent
+with other features carrying similar information. Removing the much broader
+context set raised mean FPR by 2.219 points. In Logistic Regression, dropping
+TTL raised mean FPR by 4.634 points, and the full recipe was sensitive to
+destination TTL and sender window. These findings motivate narrower,
+matched ablations and comparisons of capacity, penalties, sampling, and
+class weights. They establish neither a causal shortcut nor transferability.
+
+### Staged protocol
+
+- **Discovery** evaluates 184 new estimator and feature configurations across
+  five rotations. The budget is 108 boosted trees, 60 forests, and 16
+  Logistic Regression variants. Fit and feature parameters differ from G32.1.
+  Every recipe has a matched full and TTL-free case. A subset separates
+  source TTL from destination TTL or removes selected service context counters.
+  XGBoost and LightGBM were unavailable in the existing environment.
+- **Data roles** use exactly the verified 100,199 original G32 fit rows.
+  Hold out one of six group folds as the G32.2 challenge. Discovery rotates
+  the remaining cohort across disjoint model fit, probability fit, threshold
+  selection, and evaluation roles. The intersection of the feature contracts
+  defines grouping. Each role requires both classes and zero overlap under
+  every feature set. The training CSV checksum uses opaque bytes. Only the
+  rows named by the original G32 fit indices are materialized and decoded.
+- **Decisions** compare raw scores, sigmoid on score log-odds, and isotonic
+  probabilities. The probability role alone fits the maps. Within each
+  mapping the threshold role minimizes FPR at recall floors of 95%, 96.5%,
+  and 99%. Raw scores at 0.5 provide a reference. A configuration reuses the
+  same fitted estimator for those analyses. Report Brier score and log loss
+  separately from threshold performance. [Probability calibration](https://scikit-learn.org/1.7/modules/calibration.html)
+- **Stability** promotes at most 12 discovery candidates across model and
+  ablation families. Their selected policies repeat on two new discovery
+  seeds. Ranking prefers holding 95% recall on every fold, then lower mean
+  and worst-fold FPR. If none holds the floor, highest worst-fold recall
+  determines the diagnostic ranking. Model and policy selection ends here.
+- **Locked challenge** evaluates the frozen primary choice and up to two
+  feature-contract comparators. The estimator, probability map, and thresholds
+  are fitted exclusively within discovery. An access marker precedes scoring,
+  so an interrupted challenge with uncertain access stays unavailable. The
+  challenge is locked within G32.2. G32.1 previously studied the underlying fit
+  rows, and seed repeats reuse discovery observations. Neither stage provides
+  independent environment validation.
+
+The report records confusion matrices and denominators by fold, policy and
+seed, as well as mean, worst-fold and range summaries. Paired ablations use
+the same raw 96.5% calibration policy. Error slices show false positives and
+misses by protocol, service, and source TTL range. Finalists also record a
+fitting-sample versus evaluation AUC diagnostic. These distributions can guide
+G33 protocol design. Their fold spread does not provide independent sampling
+uncertainty. G33 needs new compatible, independently reviewed captures with a
+model and decision policy fixed in advance.
+
+### Run and monitor
+
+Use the existing Python environment. This smoke test uses synthetic inputs
+and exercises discovery, seed replication, and the locked scoring path.
+
+```powershell
+$env:LOKY_MAX_CPU_COUNT = '3'
+$env:OMP_NUM_THREADS = '2'
+$env:OPENBLAS_NUM_THREADS = '2'
+$env:MKL_NUM_THREADS = '2'
+$env:BLIS_NUM_THREADS = '2'
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_extended run --smoke --output data/g32-2-smoke
+$python = (Resolve-Path .venv/Scripts/python.exe).Path
+Start-Process -FilePath $python -ArgumentList @('-B','-m','ml.run_unsw_extended','run') `
+    -WorkingDirectory (Get-Location).Path -WindowStyle Hidden `
+    -RedirectStandardOutput data/g32-2-launch.stdout.log `
+    -RedirectStandardError data/g32-2-launch.stderr.log
+```
+
+The detached worker uses `data/g32-2-extended/`. It completes one model at a
+time with up to three forest workers and two native threads. The watchdog
+applies the original eight-hour deadline and an observed 8 GiB peak-memory
+limit. Each finished fold is saved atomically. Resume with the original run
+command, code, and directory. Resume skips saved folds and keeps the deadline.
+The report command reads current checkpoints and the final run saves
+`report.json`. A stop request takes effect at a safe checkpoint.
+
+```powershell
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_extended status
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_extended report
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_extended stop
+```
+
+[Extended runner](../../../ml/run_unsw_extended.py) ·
+[Synthetic regression tests](../../../tests/test_unsw_extended.py)
