@@ -79,6 +79,14 @@ the dashboard. [Capture evaluation gates](research/level-2/LEVEL_2_CAPTURE_DATA_
 
 ## Engineering follow-up
 
+### G36.5 engineering audit before G37
+
+Grill With Docs for G37 is complete. G36.5 planning is next, on a dedicated branch when authorized. Follow the [major milestone workflow](../AGENTS.md#major-milestone-workflow). Complete G36.5 and obtain approval before implementing the [G37 isolated pilot](adr/0002-g37-sensor-local-postgresql.md).
+
+Audit G1 through G36 across the backend and frontend, PostgreSQL schemas and API contracts, Zeek ingestion and capture processing, ML pipelines and feature and evaluation contracts, security, dependencies, tests, CI, and documentation. Look for dead or duplicated code, unnecessary complexity, and outdated or contradictory docs. Use the [glossary](../GLOSSARY.md) to reconcile terminology while preserving distinct concepts. Prioritize changes with clear engineering benefits and verification.
+
+Preserve the frozen Level 1 model and sealed datasets. G28 independent-environment validation remains deferred, and G29 live attack collection remains blocked.
+
 Agree on a repository license.
 Stable alert pagination and cross-platform dependency locking can follow
 as separately verified changes. [Engineering review](G27_5_ENGINEERING_REVIEW.md)
