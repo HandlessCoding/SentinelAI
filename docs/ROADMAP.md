@@ -52,8 +52,8 @@ verified independent recording. One matched benign pilot can measure feature
 portability for this workload. It cannot establish detection performance or
 false-positive rates. [G27 baseline](research/lab/LEVEL_2_G27_BENIGN_COLLECTION.md#verified-recordings)
 
-G29 has one verified benign control and remains incomplete. The real positive
-pilot is pending an authorized capture with independently reviewed client,
+G29 has one verified benign control. Live attack collection is **BLOCKED**
+with zero real attack flows. A real positive pilot needs independently reviewed client,
 service, and packet evidence. Keep synthetic fixtures outside cohort coverage.
 [G29 checks](LAB_GUIDE.md#matched-control-and-label-validation)
 

@@ -151,7 +151,7 @@ The G29 fixture produced one row per label and one shared key across all
 three rows. Synthetic captures are excluded from real cohort coverage and
 predictor export.
 
-**G29 remains incomplete.** The registry contains one real session, the
+**G29 live attack collection is BLOCKED.** The registry contains one real session, the
 matched benign control. There is no real capture of reconnaissance or
 unsuccessful authentication to validate, so a benign-versus-attack comparison
 and pilot expansion are pending.
