@@ -6,6 +6,9 @@ test "$VERSION_CODENAME" = noble
 dpkg-query -W -f='G37_BASE ${Package}\t${Version}\t${Architecture}\n'
 mkdir -p /stage/debs/partial
 chmod 755 /stage/debs/partial
+if [[ -f /harness/security-pins ]]; then
+  cat /harness/security-pins >> /stage/apt-roots
+fi
 cat > /etc/apt/sources.list.d/ubuntu.sources <<'EOF'
 Types: deb
 URIs: https://snapshot.ubuntu.com/ubuntu/20261122T130000Z/
@@ -25,6 +28,12 @@ apt-get --simulate --no-install-recommends install "${roots[@]}"
 apt-get -o Acquire::https::CaInfo=/host-ca.pem \
   -o Dir::Cache::archives=/stage/debs/ \
   --download-only -y --no-install-recommends install "${roots[@]}"
+
+if [[ -f /harness/security-pins ]]; then
+  # Download exact security files even when the container base already has the selected version.
+  mapfile -t security < /harness/security-pins
+  (cd /stage/debs && apt-get -o Acquire::https::CaInfo=/host-ca.pem download "${security[@]}")
+fi
 
 cd /stage
 size_kib=0
