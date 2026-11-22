@@ -9,10 +9,10 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from ml.lab_capture import audit, capture_rows, role_coverage
+from ml.lab_capture import audit, capture_rows, reviewed_core_predictors, role_coverage
 from ml.lab_demo import demo
 from ml.lab_registry import ZEEK_SETTINGS, digest, load_verified, read_object, register, write_new_object
-from ml.lab_zeek import parse_flow, read_flows, run_zeek
+from ml.lab_zeek import CORE_FIELDS, parse_flow, read_flows, run_zeek
 
 
 class CaptureLabTests(unittest.TestCase):
@@ -43,6 +43,32 @@ class CaptureLabTests(unittest.TestCase):
             stream.write("tampered")
         with self.assertRaisesRegex(ValueError, "checksum mismatch"):
             load_verified(self.root, "fixture")
+
+    def test_predictor_export_rejects_synthetic_capture(self):
+        with self.assertRaisesRegex(ValueError, "synthetic captures"):
+            list(reviewed_core_predictors(self.root, "fixture"))
+
+    def test_predictor_export_excludes_metadata_unknown_and_ineligible_flows(self):
+        # Stand-in manifest and Zeek receipt exercise the authorized capture path.
+        spec = deepcopy(self.spec)
+        spec.update(capture_id="authorized-example", source="authorized_lab",
+                    conn_log="reviewed.jsonl", zeek_receipt="receipt.json", authorization="permission.json")
+        for window in spec["windows"]:
+            window["evidence_kind"] = "independent_annotation"
+        records = [json.loads(line) for line in (self.root / "fixture-conn.jsonl").read_text().splitlines()]
+        records[0].update(capture_id="attack-run", scenario="attack", device_ids=["device-a"],
+                          environment_id="environment", evidence="private", label="attack")
+        records[1]["orig_pkts"] = None
+        path = self.root / spec["conn_log"]
+        path.write_text("".join(json.dumps(row) + "\n" for row in records), encoding="utf-8")
+        write_new_object(self.root / spec["authorization"], {"test_fixture": True})
+        write_new_object(self.root / spec["zeek_receipt"], {
+            "version": 1, "settings": list(ZEEK_SETTINGS), "zeek_version": "test",
+            "pcap_sha256": digest(self.root / spec["pcap"], pcap=True), "conn_sha256": digest(path),
+        })
+        register(self.root, spec)
+        rows = list(reviewed_core_predictors(self.root, spec["capture_id"]))
+        self.assertEqual(rows, [{field: records[0][field] for field in CORE_FIELDS}])
 
     def test_pins_original_evidence_even_without_a_reviewed_window(self):
         source = self.root / "client-events.json"

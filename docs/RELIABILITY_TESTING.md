@@ -67,7 +67,9 @@ allow header for a separate origin.
   application connection string.
 - The dashboard uses Vite's same-origin `/api/` proxy. Vite disables
   CORS, and FastAPI serves the documented local workflow without CORS
-  allowances. The API uses loopback host validation.
+  allowances. The Host allowlist validates the HTTP header after a connection
+  reaches the API. The loopback bind controls network reachability, and the
+  capture lab uses its own isolated link.
 - Keep `.env`, both dataset partitions, model artifacts, and dependency
   directories in ignored local paths. The frontend uses local HTTP
   routes for access and the database connection stays in FastAPI.

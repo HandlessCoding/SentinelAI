@@ -29,6 +29,16 @@ def capture_rows(root, manifest, windows):
         yield flow, labeler.classify(flow)
 
 
+def reviewed_core_predictors(root, capture_id):
+    """Yield only the fixed predictor columns for reviewed, eligible real flows."""
+    manifest, windows = load_verified(root, capture_id)
+    if manifest["capture"]["source"] == "synthetic":
+        raise ValueError("synthetic captures are excluded from predictor export")
+    for flow, (label, _, _) in capture_rows(root, manifest, windows):
+        if label != "unknown" and flow.core_eligible:
+            yield {name: flow.features[name] for name in CORE_FIELDS}
+
+
 def same_lineage(manifests):
     """Find copied captures, cross-role group reuse, and same-sensor time overlap."""
     violations = set()
@@ -170,6 +180,7 @@ def main(argv=None):
     zeek.add_argument("--binary", default="zeek")
     sub.add_parser("register", help="hash files and seal a capture").add_argument("draft")
     sub.add_parser("records", help="stream normalized JSON records").add_argument("capture_id")
+    sub.add_parser("predictors", help="stream reviewed real flow features only").add_argument("capture_id")
     sub.add_parser("audit", help="report coverage and overlap").add_argument("capture_ids", nargs="+")
     args = parser.parse_args(argv)
     try:
@@ -177,6 +188,9 @@ def main(argv=None):
             print(run_zeek(args.root, args.pcap, args.run_id, args.binary))
         elif args.action == "register":
             print(register(args.root, read_object(lab_path(args.root, args.draft))))
+        elif args.action == "predictors":
+            for features in reviewed_core_predictors(args.root, args.capture_id):
+                print(json.dumps(features))
         elif args.action == "records":
             manifest, windows = load_verified(args.root, args.capture_id)
             for flow, (label, category, reason) in capture_rows(args.root, manifest, windows):
