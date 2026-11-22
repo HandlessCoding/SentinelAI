@@ -23,7 +23,7 @@ from support import requires_local_model
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REVISION = "0002_zeek_traffic"
+REVISION = "0003_zeek_streams"
 
 
 class PostgreSQLSchemaTestCase(unittest.TestCase):
@@ -77,7 +77,7 @@ class PostgreSQLSchemaTestCase(unittest.TestCase):
 class PostgreSQLInvestigationsTests(PostgreSQLSchemaTestCase):
     def test_migration_up_down_and_orm_schema_match(self):
         existing = {"prediction_batches", "alerts", "incidents", "analyst_notes", "alembic_version"}
-        expected = existing | {"zeek_captures", "zeek_flows"}
+        expected = existing | {"zeek_captures", "zeek_flows", "zeek_streams"}
         self.assertEqual(set(inspect(self.engine).get_table_names()), expected)
         with self.engine.connect() as connection:
             self.assertEqual(connection.exec_driver_sql("SELECT version_num FROM alembic_version").scalar_one(),

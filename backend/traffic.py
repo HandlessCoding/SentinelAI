@@ -1,22 +1,23 @@
-"""Read imported Zeek flows and rule findings from local PostgreSQL."""
+"""Read Zeek flows, source health and rule findings from local PostgreSQL."""
 
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_serializer
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from backend.database import get_session
-from backend.models import ZeekFlow
+from backend.models import ZeekCapture, ZeekFlow, ZeekStream
 from backend.zeek_rules import FINDING_EXPLANATIONS, STATE_PATTERN, Protocol
 
 
-router = APIRouter(prefix="/traffic", tags=["Offline traffic"])
+router = APIRouter(prefix="/traffic", tags=["Network traffic"])
 Database = Annotated[Session, Depends(get_session)]
 MAX_OFFSET = 100_000
+FlowSource = Literal["authorized_lab", "authorized_archive", "recorded_replay", "connected_sensor"]
 
 
 class RuleFinding(BaseModel):
@@ -31,6 +32,8 @@ class FlowInfo(BaseModel):
     id: UUID
     capture_id: str
     source_row: int
+    source: FlowSource
+    ingested_at: datetime | None
     observed_at: str
     proto: Protocol
     conn_state: str | None
@@ -56,15 +59,17 @@ class CaptureInfo(BaseModel):
     session_id: str
     environment_id: str
     observation_point: str
-    source: Literal["authorized_lab", "authorized_archive"]
+    source: FlowSource
     zeek_version: str
     imported_at: datetime
-    pcap_sha256: str
-    conn_sha256: str
+    pcap_sha256: str | None
+    conn_sha256: str | None
     manifest_sha256: str
 
 
 class FlowDetail(FlowInfo):
+    source_file: str | None
+    source_offset: int | None
     history: str | None
     duration_ns: int | None
     orig_pkts: int | None
@@ -100,6 +105,55 @@ class FlowSummary(BaseModel):
     protocols: list[ProtocolCount]
 
 
+class StreamHealth(BaseModel):
+    capture_id: str
+    source: Literal["recorded_replay", "connected_sensor"]
+    status: str
+    backlog_bytes: int | None
+    rejected_rows: int
+    duplicate_rows: int
+    last_error: str | None
+    heartbeat_at: datetime | None
+    last_success_at: datetime | None
+    last_ingested_at: datetime | None
+    replay_capture_id: str | None
+    replay_conn_sha256: str | None
+
+
+class MonitoringSummary(BaseModel):
+    recent_flows: int
+    recent_findings: int
+    protocols: list[ProtocolCount]
+    sources: list[StreamHealth]
+    more_sources: bool
+
+
+@router.get("/monitoring", response_model=MonitoringSummary)
+def monitoring_summary(db: Database):
+    now = datetime.now(UTC)
+    counts = db.execute(select(ZeekFlow.proto, func.count(), func.count(ZeekFlow.rule_code))
+                        .where(ZeekFlow.ingested_at >= now - timedelta(minutes=5))
+                        .group_by(ZeekFlow.proto).order_by(ZeekFlow.proto)).all()
+    streams = list(db.scalars(select(ZeekStream).options(joinedload(ZeekStream.capture))
+                              .order_by(ZeekStream.capture_id).limit(101)))
+    sources = []
+    for stream in streams[:100]:
+        stale = stream.heartbeat_at is None or stream.heartbeat_at < now - timedelta(seconds=15)
+        sources.append(StreamHealth(
+            capture_id=stream.capture_id, source=stream.capture.source,
+            status="stale" if stale else stream.status,
+            backlog_bytes=None if stale else stream.backlog_bytes,
+            rejected_rows=stream.rejected_rows, duplicate_rows=stream.duplicate_rows,
+            last_error=stream.last_error, heartbeat_at=stream.heartbeat_at,
+            last_success_at=stream.last_success_at, last_ingested_at=stream.last_ingested_at,
+            replay_capture_id=stream.replay_capture_id, replay_conn_sha256=stream.replay_conn_sha256,
+        ))
+    return MonitoringSummary(recent_flows=sum(n for _, n, _ in counts),
+                             recent_findings=sum(n for _, _, n in counts),
+                             protocols=[ProtocolCount(protocol=proto, count=n) for proto, n, _ in counts],
+                             sources=sources, more_sources=len(streams) > 100)
+
+
 @router.get("/summary", response_model=FlowSummary)
 def traffic_summary(db: Database):
     counts = db.execute(select(
@@ -118,10 +172,18 @@ def list_flows(
     capture_id: Annotated[str | None, Query(pattern=r"^[a-z0-9][a-z0-9_-]{0,63}$")] = None,
     connection_state: Annotated[str | None, Query(pattern=STATE_PATTERN)] = None,
     has_finding: bool | None = None,
+    source: FlowSource | None = None,
+    order: Literal["observed", "ingested"] = "observed",
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0, le=MAX_OFFSET)] = 0,
 ):
-    query = select(ZeekFlow).order_by(ZeekFlow.timestamp_ns.desc(), ZeekFlow.id.desc())
+    query = select(ZeekFlow).options(joinedload(ZeekFlow.capture))
+    if order == "ingested":
+        query = query.where(ZeekFlow.ingested_at.is_not(None)).order_by(ZeekFlow.ingested_at.desc(), ZeekFlow.id.desc())
+    else:
+        query = query.order_by(ZeekFlow.timestamp_ns.desc(), ZeekFlow.id.desc())
+    if source is not None:
+        query = query.where(ZeekFlow.capture.has(ZeekCapture.source == source))
     if protocol is not None:
         query = query.where(ZeekFlow.proto == protocol)
     if capture_id is not None:

@@ -2,18 +2,29 @@ import { AlertCircle, Inbox, LoaderCircle } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { AlertStatus } from './api'
 
-export function useResource<T>(load: ((signal: AbortSignal) => Promise<T>) | null) {
+export function useResource<T>(load: ((signal: AbortSignal) => Promise<T>) | null, pollMs?: number) {
   const [result, setResult] = useState<{ source: typeof load; value?: T; error?: string } | null>(null)
   useEffect(() => {
     if (!load) return
+    const request = load
     const controller = new AbortController()
-    load(controller.signal).then(value => {
-      if (!controller.signal.aborted) setResult({ source: load, value })
-    }).catch((error: unknown) => {
-      if (!controller.signal.aborted) setResult({ source: load, error: message(error) })
-    })
-    return () => controller.abort()
-  }, [load])
+    let timer: ReturnType<typeof setTimeout> | undefined
+    async function run() {
+      try {
+        const value = await request(controller.signal)
+        if (!controller.signal.aborted) setResult({ source: load, value })
+      } catch (error) {
+        if (!controller.signal.aborted) setResult({ source: load, error: message(error) })
+      } finally {
+        if (pollMs && !controller.signal.aborted) timer = setTimeout(run, pollMs)
+      }
+    }
+    void run()
+    return () => {
+      controller.abort()
+      clearTimeout(timer)
+    }
+  }, [load, pollMs])
   const active = result?.source === load ? result : null
   return { value: active?.value, error: active?.error, loading: !!load && !active }
 }

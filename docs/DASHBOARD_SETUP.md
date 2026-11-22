@@ -39,11 +39,14 @@ credentials are handled by FastAPI.
 - **Alerts** searches and filters the retrieved alerts. Open a row to
   retrieve its details from the alert endpoint. A detection remains a
   suspected attack, and the detail view shows the model probability.
-- **Network Traffic** displays previously imported Zeek flow counts and a
-  protocol breakdown. Filter by protocol, capture ID, or rule finding.
-  Open a flow to inspect its endpoints, timing, counters, review label,
-  capture provenance, and any rule explanation.
-  [Offline import instructions](DATABASE_SETUP.md#import-reviewed-zeek-flows-offline)
+- **Network Traffic** displays offline imports and incoming Zeek flows.
+  Recent activity, protocol counts, source health, and the first connection
+  page refresh every five seconds. Filter by protocol, capture ID, rule finding,
+  or source, and choose **Recently ingested** to follow replay or sensor arrivals.
+  Open a row for endpoints, timing, counters, review label, and rule and source
+  details. The dashboard identifies recorded replay and connected sensor inputs.
+  [Offline import](DATABASE_SETUP.md#import-reviewed-zeek-flows-offline) ·
+  [Continuous replay and worker setup](DATABASE_SETUP.md#run-continuous-zeek-ingestion)
 - **Incidents** discovers investigations through alert links. Select
   **New incident** to give an investigation a title and link unassigned
   alerts. Select an existing incident to edit its title, description,

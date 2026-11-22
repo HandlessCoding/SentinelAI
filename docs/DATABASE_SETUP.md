@@ -37,7 +37,7 @@ Run these commands from the repository root in PowerShell:
 
 The commands install the pinned dependencies, migrate the development
 database, print its applied revision, and serve the API locally. The
-expected head revision is `0002_zeek_traffic`. Port 8001 matches
+expected head revision is `0003_zeek_streams`. Port 8001 matches
 the dashboard's local proxy target. Open
 [Swagger UI](http://127.0.0.1:8001/docs) to explore the routes.
 
@@ -101,14 +101,65 @@ The capture and all its flows commit together.
 | Endpoint | Behavior |
 |---|---|
 | `GET /traffic/summary` | Count imported flows, rule findings, and flows by protocol |
-| `GET /traffic/flows` | Filter by `capture_id`, `protocol`, `connection_state`, or `has_finding`. Page with `limit` (1–100) and `offset` (0–100,000). |
+| `GET /traffic/flows` | Filter by `capture_id`, `protocol`, `connection_state`, `has_finding`, or `source`. Use `order=ingested` for recently ingested continuous flows. Page with `limit` (1–100) and `offset` (0–100,000). |
 | `GET /traffic/flows/{flow_id}` | Read exact UTC timestamp, endpoints, counters, rule explanation, reviewed label, and capture provenance |
+| `GET /traffic/monitoring` | Five-minute continuous activity, protocol counts, and checkpoint health for up to 100 configured sources |
 
 Timestamps retain nanosecond precision. The detail API returns counter and
 duration values as decimal strings to preserve their full precision in the
 browser. IP-level byte counts and payload byte estimates stay separate.
 Import stays a local command. Raw PCAPs and evidence files stay on D:.
 [Zeek connection fields](https://docs.zeek.org/en/v8.0.11/scripts/base/protocols/conn/main.zeek.html#type-Conn::Info)
+
+## Run continuous Zeek ingestion
+
+Apply Alembic head first. Run one worker per source in a separate process.
+It reads a regular local file with one Zeek JSON object per newline. For a
+recorded replay, start the worker in one PowerShell terminal:
+
+```powershell
+New-Item -ItemType Directory -Force data/g36-replay | Out-Null
+& .\.venv\Scripts\python.exe -B -m backend.zeek_stream g36-replay-g29 data/g36-replay/conn.log --replay-root data/level2/capture-lab/g29 --capture-id g29-control-01
+```
+
+In a second terminal, append the authorized recording to the disposable log
+and inspect **Network Traffic**, or query the local API:
+
+```powershell
+$recording = (Resolve-Path 'data/level2/capture-lab/g29/zeek/g29-control-01/conn.log').Path
+$relay = Join-Path (Resolve-Path 'data/g36-replay').Path 'conn.log'
+$bytes = [IO.File]::ReadAllBytes($recording)
+$sink = [IO.File]::Open($relay, [IO.FileMode]::Append, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+try { $sink.Write($bytes, 0, $bytes.Length) } finally { $sink.Dispose() }
+Invoke-RestMethod 'http://127.0.0.1:8001/traffic/monitoring'
+Invoke-RestMethod 'http://127.0.0.1:8001/traffic/flows?capture_id=g36-replay-g29&order=ingested'
+```
+
+The worker starts at byte zero and commits the file identity, byte
+offset, trailing-byte checksum, flow inserts, and health counters together.
+Restart with the same source ID and settings to resume. Replay accepts exact
+verified lines and uses their original reviewed labels. Re-appending the same
+recording under the same source ID increments its duplicate count. Connected
+sensor mode uses `--environment`, `--observation-point`, and `--zeek-version`
+in place of the replay options. Sensor records require Zeek UIDs and stay
+unreviewed. Deduplication uses UID and first-packet time within each sensor
+source. Rule findings stay separate from analyst alerts and incidents.
+
+Each transaction processes a file slice of up to 256 KiB and 128 lines.
+An ordinary partial line stays pending, and lines over 64 KiB are discarded
+in bounded chunks. The worker polls every second when idle, retries database
+outages, and exposes pending bytes, rejected and duplicate counts, last error,
+and last successful processing and ingestion times. A heartbeat older than
+15 seconds appears stale.
+
+For rotation, close and rename the old file to `conn.log.1`, create the
+new `conn.log`, and retain `.1` until the worker drains it. The same rule
+applies to other filenames. A missing or replaced previous generation blocks
+handoff until the original file is restored. A truncated or rewritten
+checkpointed prefix also blocks the worker when its length or trailing hash
+changes. Use rename rotation. Multiple unretained rotations and copy-truncate
+are outside this worker's contract. Downgrading to revision 0002 removes
+continuous source records and their flows. Offline captures are retained.
 
 ## Demonstrate the workflow
 
