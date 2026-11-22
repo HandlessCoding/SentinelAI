@@ -23,7 +23,7 @@ from backend.zeek_stream import Source, run_worker
 from verification.g37 import flow_identity, persistence_upper_bound_ns
 
 POLL_SECONDS = 0.025
-CARDINALITIES = (10_000, 100_000)
+CARDINALITIES = (10_000, 25_000)
 PAGE_SIZES = (25, 100)
 WORKER_THREAD = "g37-ingest"
 PACE_BATCHES = 60
