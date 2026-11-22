@@ -12,7 +12,7 @@ from unittest import skipIf
 from unittest.mock import Mock, patch
 
 from alembic import command
-from sqlalchemy import event
+from sqlalchemy import event, text
 from sqlalchemy.orm import Session
 
 from backend import zeek_stream
@@ -268,6 +268,24 @@ class ZeekStreamTests(PostgreSQLSchemaTestCase):
             flows = client.get("/traffic/flows", params={"pagination": "cursor"}).json()["flows"]
             self.assertEqual([row["source_row"] for row in flows], [2, 1])
             self.assertEqual(self.health(client)["sources"][0]["duplicate_rows"], 0)
+
+    def test_downgrade_to_0002_preserves_offline_flows_and_removes_continuous_flows(self):
+        registry = self.root / "registry-root"
+        spec = stand_in_capture(registry)
+        with Session(self.engine) as db:
+            import_capture(db, registry, spec["capture_id"])
+        self.path.write_bytes(record(1))
+        self.ingest()
+        self.assertEqual(self.count(ZeekFlow), 4)
+        self.migrate(command.downgrade, "0002_zeek_traffic")
+        with self.engine.connect() as connection:
+            captures = connection.execute(text("SELECT capture_id, source FROM zeek_captures")).all()
+            self.assertEqual(captures, [(spec["capture_id"], "authorized_lab")])
+            self.assertEqual(connection.scalar(text("SELECT count(*) FROM zeek_flows")), 3)
+        self.migrate(command.upgrade, "head")
+        with self.traffic_client() as client:
+            page = client.get("/traffic/flows", params={"pagination": "cursor"}).json()
+            self.assertEqual([flow["capture_id"] for flow in page["flows"]], [spec["capture_id"]] * 3)
 
     def test_upgrade_blocks_an_archive_without_a_provable_acknowledgement(self):
         self.path.write_bytes(record(1))

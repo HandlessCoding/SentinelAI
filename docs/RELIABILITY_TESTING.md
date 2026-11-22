@@ -42,6 +42,21 @@ for the real Zeek fixture. Set `SENTINELAI_G26_LAB_ROOT`,
 local registries to include recorded checks in the Python command above.
 [Lab procedure](LAB_GUIDE.md#verify-the-sensor-offline)
 
+## Recover a saved G32.2 report
+
+Use a separate checkout at `72468836e15d9224fbbeb251269a8cb98eb33cd0` to
+recover or verify G32.2. It contains the checkpoint verifier and the same
+fingerprinted runner modules as the G32.2 source revision `d7441cb`. From the
+original run's working directory, set `PYTHONPATH` to the pinned checkout for
+this command and run `python -P -B -m ml.run_unsw_extended report` for a finished
+run that lacks its report. Use its original `--output` directory if it was customized and
+redirect the result to a separate file in ignored local storage. The command
+reads saved results without fitting. Keep its output for inspection.
+Checkpoint verification requires the original `report.json` and matching
+run state. Use the pinned checkout for verification because the current
+Level 1 guard changes the fingerprint of `ml/inference.py`.
+[G32.2 procedure and results](research/level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g322-extended-overnight-study)
+
 ## Failure and integrity coverage
 
 | Check | Expected behavior |

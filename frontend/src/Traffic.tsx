@@ -1,7 +1,7 @@
 import { Activity, Network, ShieldAlert, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { api, type TrafficDetail, type TrafficFlow, type TrafficMonitoring, type TrafficSource, type ZeekProtocol } from './api'
-import { dateTime, shortId, State, useResource } from './shared'
+import { dateTime, shortId, State, useDetailFocus, useResource } from './shared'
 
 const PAGE_SIZE = 25
 export const TRAFFIC_POLL_MS = 5000
@@ -25,7 +25,7 @@ function endpoint(host: string | null, port: number | null) {
 function TrafficTable({ flows }: { flows: TrafficFlow[] }) {
   return <div className="table-scroll" role="region" aria-label="Flow table" tabIndex={0}><table>
     <thead><tr><th>First packet (UTC)</th><th>Originator</th><th>Responder</th><th>Protocol</th><th>State</th>
-      <th>Source</th><th>Ground truth</th><th>Rule finding</th></tr></thead>
+      <th>Input kind</th><th>Reviewed ground truth</th><th>Rule finding</th></tr></thead>
     <tbody>{flows.map(flow => <tr key={flow.id}>
       <td><a href={'#traffic/' + flow.id} aria-label={'View flow ' + shortId(flow.id)}><time dateTime={flow.observed_at}>
         {flow.observed_at.replace('T', ' ').slice(0, 19)}</time></a></td>
@@ -38,6 +38,7 @@ function TrafficTable({ flows }: { flows: TrafficFlow[] }) {
 }
 
 function Details({ flow }: { flow: TrafficDetail }) {
+  const continuous = flow.source === 'recorded_replay' || flow.source === 'connected_sensor'
   const facts = [
     ['Observed at (UTC)', flow.observed_at], ['Protocol', protocols[flow.proto]],
     ['Originator', endpoint(flow.orig_host, flow.orig_port)], ['Responder', endpoint(flow.resp_host, flow.resp_port)],
@@ -45,19 +46,19 @@ function Details({ flow }: { flow: TrafficDetail }) {
     ['Zeek history', flow.history], ['Originator packets', flow.orig_pkts], ['Responder packets', flow.resp_pkts],
     ['Originator IP bytes', flow.orig_ip_bytes], ['Responder IP bytes', flow.resp_ip_bytes],
     ['Originator payload bytes', flow.orig_bytes], ['Responder payload bytes', flow.resp_bytes],
-    ['Missed payload bytes', flow.missed_bytes], ['Capture', flow.capture_id], ['Source row', flow.source_row],
-    ['Session', flow.capture.session_id], ['Environment', flow.capture.environment_id],
+    ['Missed payload bytes', flow.missed_bytes], [continuous ? 'Ingestion source ID' : 'Capture ID', flow.capture_id],
+    ['Source row', flow.source_row], ['Session', flow.capture.session_id], ['Recorded environment ID', flow.capture.environment_id],
     ['Observation point', flow.capture.observation_point],
-    ['Capture source', sources[flow.capture.source]],
-    ['Zeek version', flow.capture.zeek_version], ['Imported at', flow.capture.imported_at],
+    ['Input kind', sources[flow.capture.source]], ['Zeek version', flow.capture.zeek_version],
+    [continuous ? 'Source registered at' : 'Imported at', flow.capture.imported_at],
     ['Connection log SHA-256', flow.capture.conn_sha256], ['PCAP SHA-256', flow.capture.pcap_sha256],
-    [flow.ingested_at ? 'Source configuration SHA-256' : 'Manifest SHA-256', flow.capture.manifest_sha256],
+    [continuous ? 'Source configuration SHA-256' : 'Manifest SHA-256', flow.capture.manifest_sha256],
     ...(flow.ingested_at ? [['Ingested at', flow.ingested_at], ['File identity', flow.source_file],
       ['Byte offset', flow.source_offset]] as const : []),
   ] as const
   return <div className="detail-content traffic-detail">
     <section><h3>Evidence and triage</h3>
-      <p><strong>Ground truth</strong> {labels[flow.ground_truth]}{flow.label_category && ` (${flow.label_category})`}</p>
+      <p><strong>Reviewed ground truth</strong> {labels[flow.ground_truth]}{flow.label_category && ` (${flow.label_category})`}</p>
       <p><strong>Label reason</strong> {flow.label_reason.replaceAll('_', ' ')}</p>
       <p><strong>Rule finding</strong> {flow.finding ? flow.finding.explanation : 'None'}</p>
       {flow.finding && <p><code>{flow.finding.code}</code></p>}
@@ -72,13 +73,13 @@ function Monitoring({ summary }: { summary: TrafficMonitoring }) {
       <p>{summary.recent_flows.toLocaleString()} flows and {summary.recent_findings.toLocaleString()} rule findings in the last 5 minutes</p>
       {summary.protocols.length > 0 && <p>{summary.protocols.map(({ protocol, count }) =>
         protocols[protocol] + ' ' + count.toLocaleString()).join(' · ')}</p>}</div></div>
-    {summary.sources.length === 0 ? <State title="No continuous source registered" /> :
+    {summary.sources.length === 0 ? <State title="No ingestion source registered" /> :
       <div className="table-scroll" role="region" aria-label="Ingestion source health" tabIndex={0}><table>
-        <thead><tr><th>Source</th><th>Health</th><th>Processing lag</th><th>Errors</th>
+        <thead><tr><th>Ingestion source</th><th>Health</th><th>Processing lag</th><th>Errors</th>
           <th>Last successful update</th><th>Last flow ingested</th></tr></thead>
         <tbody>{summary.sources.map(source => <tr key={source.capture_id}>
           <td><strong>{source.capture_id}</strong><br />{sources[source.source]}
-            {source.replay_capture_id && <><br />Recording {source.replay_capture_id}</>}</td>
+            {source.replay_capture_id && <><br />Original capture ID {source.replay_capture_id}</>}</td>
           <td>{ingestionStatus[source.status]}</td>
           <td>{source.backlog_bytes === null ? 'Unavailable' : source.backlog_bytes.toLocaleString() + ' bytes pending'}</td>
           <td>{source.rejected_rows.toLocaleString()} rejected · {source.duplicate_rows.toLocaleString()} duplicates
@@ -95,6 +96,7 @@ export function Traffic({ selected, revision, refresh }: { selected?: string; re
   const [pages, setPages] = useState<{ cursor: string | null; previous: string[] }>({ cursor: null, previous: [] })
   const { cursor, previous } = pages
   const close = useRef<HTMLAnchorElement>(null)
+  const protocolFilter = useRef<HTMLSelectElement>(null)
   const summary = useResource(useCallback((signal: AbortSignal) => api.trafficSummary(signal), [revision]))
   const monitoring = useResource(useCallback((signal: AbortSignal) => api.trafficMonitoring(signal), [revision]), TRAFFIC_POLL_MS)
   const page = useResource(useCallback((signal: AbortSignal) => {
@@ -106,7 +108,7 @@ export function Traffic({ selected, revision, refresh }: { selected?: string; re
   const loadDetail = useCallback((signal: AbortSignal) => api.trafficFlow(selected!, signal), [selected, revision])
   const details = useResource(selected ? loadDetail : null)
 
-  useEffect(() => { if (selected) close.current?.focus() }, [selected])
+  useDetailFocus(selected, close, protocolFilter)
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -122,29 +124,31 @@ export function Traffic({ selected, revision, refresh }: { selected?: string; re
       <button className="button secondary" onClick={refresh}>Retry summary</button>
     </State></div>}
     {summary.value && <div className="metrics traffic-metrics">
-      <article className="panel metric"><div className="metric-top"><span>Imported flows</span><Activity size={18} /></div>
+      <article className="panel metric"><div className="metric-top"><span>Stored flows</span><Activity size={18} /></div>
         <strong>{summary.value.total_flows.toLocaleString()}</strong><small>All-time total at last refresh</small></article>
       <article className="panel metric"><div className="metric-top"><span>Rule findings</span><ShieldAlert size={18} /></div>
         <strong>{summary.value.finding_count.toLocaleString()}</strong><small>Connection signals for review</small></article>
       <article className="panel metric"><div className="metric-top"><span>Protocol breakdown</span><Network size={18} /></div>
         {summary.value.protocols.length ? <ul className="traffic-protocols">{summary.value.protocols.map(({ protocol, count }) =>
-          <li key={protocol}><span>{protocols[protocol]}</span><b>{count.toLocaleString()}</b></li>)}</ul> : <small>No imported protocols</small>}
+          <li key={protocol}><span>{protocols[protocol]}</span><b>{count.toLocaleString()}</b></li>)}</ul> : <small>No observed protocols</small>}
       </article>
     </div>}
     {monitoring.loading && <div className="panel"><State kind="loading" title="Loading ingestion health" /></div>}
-    {monitoring.error && <div className="panel"><State kind="error" title="Could not load ingestion health" detail={monitoring.error} /></div>}
+    {monitoring.error && <div className="panel"><State kind="error" title="Could not load ingestion health" detail={monitoring.error}>
+      <button className="button secondary" onClick={refresh}>Retry ingestion health</button>
+    </State></div>}
     {monitoring.value && <Monitoring summary={monitoring.value} />}
     <section className="panel">
-      <div className="panel-heading"><div><h2>Connections</h2><p>Ground truth comes from reviewed capture evidence.</p></div></div>
+      <div className="panel-heading"><div><h2>Connections</h2><p>Reviewed ground truth comes from capture evidence.</p></div></div>
       <form className="filters" onSubmit={applyFilters}>
-        <label className="filter"><select name="protocol" aria-label="Filter by protocol">
+        <label className="filter"><select ref={protocolFilter} name="protocol" aria-label="Filter by protocol">
           <option value="">All protocols</option>{Object.entries(protocols).map(([key, name]) => <option key={key} value={key}>{name}</option>)}
         </select></label>
-        <label className="search"><input name="capture_id" aria-label="Filter by capture ID" placeholder="Capture ID" maxLength={64}
+        <label className="search"><input name="capture_id" aria-label="Filter by capture or ingestion source ID" placeholder="Capture or source ID" maxLength={64}
           pattern="[a-z0-9][a-z0-9_\-]{0,63}" /></label>
         <label className="filter"><select name="has_finding" aria-label="Filter by rule finding"><option value="">All flows</option>
           <option value="true">With findings</option><option value="false">Without findings</option></select></label>
-        <label className="filter"><select name="source" aria-label="Filter by source"><option value="">All sources</option>
+        <label className="filter"><select name="source" aria-label="Filter by input kind"><option value="">All input kinds</option>
           {Object.entries(sources).map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select></label>
         <label className="filter"><select name="order" aria-label="Sort connections"><option value="">Latest observed</option>
           <option value="ingested">Recently ingested</option></select></label>
@@ -171,7 +175,9 @@ export function Traffic({ selected, revision, refresh }: { selected?: string; re
     }}>
       <div className="panel-heading"><h2>Flow details</h2><a ref={close} className="icon-button" href="#traffic" aria-label="Close flow details"><X size={20} /></a></div>
       {details.loading && <State kind="loading" title="Loading flow details" />}
-      {details.error && <State kind="error" title="Could not load flow" detail={details.error} />}
+      {details.error && <State kind="error" title="Could not load flow" detail={details.error}>
+        <button className="button secondary" onClick={refresh}>Retry flow details</button>
+      </State>}
       {details.value && <Details flow={details.value} />}
     </aside>}
   </>

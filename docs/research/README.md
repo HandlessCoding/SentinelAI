@@ -33,7 +33,7 @@ at each milestone. Their setup commands describe those runs. Use the
 | G24 | [IoT-23 v1 capture reconciliation and overlap](level-2/LEVEL_2_IOT23_CAPTURE_RECONCILIATION.md) |
 | G32 | [Four-way UNSW-NB15 development experiment](level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g32-unsw-nb15-development-restart) |
 | G32.1 | [Unattended fitting-only experiments](level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g321-unattended-fitting-only-research) |
-| G32.2 | [Extended discovery, calibration, and locked internal challenge](level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g322-extended-overnight-study) |
+| G32.2 | [Extended discovery, calibration, and locked internal challenge](level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g322-extended-overnight-study) · [Pinned report recovery and verification](../RELIABILITY_TESTING.md#recover-a-saved-g322-report) |
 | G33 | [Error analysis, qualification, and Zeek feature compatibility](level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g33-error-analysis-and-qualification) |
 | G34 | [UNSW exporter assessment and Zeek-native feature contract](../LAB_GUIDE.md#qualify-the-zeek-native-feature-contract) |
 | G35 | [Zeek-native dataset qualification and TCP history projection](../LAB_GUIDE.md#g35-qualification-result) |
@@ -45,6 +45,7 @@ at each milestone. Their setup commands describe those runs. Use the
 | G25 | [Capture foundation and synthetic demonstration](lab/LEVEL_2_CONTROLLED_CAPTURE_LAB.md) |
 | G26 | [Guest provisioning, isolation, and real Zeek evidence](lab/LEVEL_2_G26_ZEEK_VERIFICATION.md) |
 | G27 | [Pilot, expansion, and per-session benign statistics](lab/LEVEL_2_G27_BENIGN_COLLECTION.md) |
+| G36 | [Continuous ingestion and recorded replay verification](../LAB_GUIDE.md#g36-continuous-replay-verification) |
 
 Raw recordings, model packages, dataset copies, local authorization files, and
 registry records stay in ignored local storage. Published reports preserve

@@ -36,11 +36,10 @@ def receipt(batch, alert_ids):
     )
 
 
-def replay(db, batch, digest, response):
+def stored_receipt(db, batch, digest):
     if batch.request_sha256 != digest:
         raise HTTPException(status_code=409, detail="This idempotency key was used for a different batch.")
     alert_ids = db.scalars(select(Alert.id).where(Alert.batch_id == batch.id).order_by(Alert.record_index))
-    response.status_code = 200
     return receipt(batch, list(alert_ids))
 
 
@@ -61,7 +60,8 @@ def analyze(batch: PredictRequest, request: Request, response: Response, db: Dat
     by_key = select(PredictionBatch).where(PredictionBatch.idempotency_key == idempotency_key)
     existing = db.scalar(by_key)
     if existing is not None:
-        return replay(db, existing, digest, response)
+        response.status_code = 200
+        return stored_receipt(db, existing, digest)
 
     model = request.app.state.model
     predictions = predict_records(model, batch.records)
@@ -80,7 +80,8 @@ def analyze(batch: PredictRequest, request: Request, response: Response, db: Dat
     )
     if created is None:
         # A concurrent insertion won and committed. Read its receipt.
-        return replay(db, db.scalars(by_key).one(), digest, response)
+        response.status_code = 200
+        return stored_receipt(db, db.scalars(by_key).one(), digest)
 
     alerts = [
         Alert(batch_id=created.id, record_index=index, attack_probability=prediction["attack_probability"])

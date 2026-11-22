@@ -15,7 +15,7 @@ from backend.database import DatabaseConfigurationError, get_engine
 from backend.models import ZeekCapture, ZeekFlow
 from backend.zeek_rules import PROTOCOLS, STATE_PATTERN, rule_for_flow
 from ml.lab_capture import capture_rows
-from ml.lab_registry import DEFAULT_ROOT, lab_path, load_verified, read_object
+from ml.lab_registry import DEFAULT_ROOT, load_verified_capture
 from ml.lab_zeek import COUNTERS
 
 
@@ -68,12 +68,11 @@ def flow_values(capture_id, index, flow, label):
 
 def import_capture(db, root, capture_id):
     """Validate a bounded capture and store it atomically, including concurrent retries."""
-    manifest, windows = load_verified(root, capture_id, max_artifact_bytes=MAX_ARTIFACT_BYTES)
+    manifest, windows, receipt = load_verified_capture(root, capture_id, max_artifact_bytes=MAX_ARTIFACT_BYTES)
     spec, hashes = manifest["capture"], manifest["sha256"]
     if spec["source"] == "synthetic":
         raise ValueError("synthetic captures cannot be imported as recorded traffic")
 
-    receipt = read_object(lab_path(root, spec["zeek_receipt"]))
     version = receipt["zeek_version"]
     if not 1 <= len(version) <= 128 or not version.isprintable():
         raise ValueError("invalid Zeek version in the registered receipt")

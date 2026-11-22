@@ -1,8 +1,8 @@
 import { AlertCircle, Inbox, LoaderCircle } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import type { AlertStatus } from './api'
 
-export function useResource<T>(load: ((signal: AbortSignal) => Promise<T>) | null, pollMs?: number) {
+export function useResource<T>(load: ((signal: AbortSignal) => Promise<T>) | null, pollMs?: number, revision?: number) {
   const [result, setResult] = useState<{ source: typeof load; value?: T; error?: string } | null>(null)
   useEffect(() => {
     if (!load) return
@@ -14,7 +14,12 @@ export function useResource<T>(load: ((signal: AbortSignal) => Promise<T>) | nul
         const value = await request(controller.signal)
         if (!controller.signal.aborted) setResult({ source: load, value })
       } catch (error) {
-        if (!controller.signal.aborted) setResult({ source: load, error: message(error) })
+        if (!controller.signal.aborted) {
+          setResult(previous => ({
+            source: load, error: message(error),
+            value: revision !== undefined && previous?.source === load ? previous.value : undefined,
+          }))
+        }
       } finally {
         if (pollMs && !controller.signal.aborted) timer = setTimeout(run, pollMs)
       }
@@ -24,9 +29,27 @@ export function useResource<T>(load: ((signal: AbortSignal) => Promise<T>) | nul
       controller.abort()
       clearTimeout(timer)
     }
-  }, [load, pollMs])
+  }, [load, pollMs, revision])
   const active = result?.source === load ? result : null
   return { value: active?.value, error: active?.error, loading: !!load && !active }
+}
+
+export function useDetailFocus(selected: string | undefined, close: RefObject<HTMLElement | null>,
+  fallback: RefObject<HTMLElement | null>) {
+  const opener = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    if (selected && close.current) {
+      const current = document.activeElement
+      if (!opener.current) {
+        opener.current = current instanceof HTMLElement && current.closest('.table-scroll') ? current : fallback.current
+      }
+      close.current.focus()
+    } else if (opener.current) {
+      const target = opener.current.isConnected ? opener.current : fallback.current
+      opener.current = null
+      target?.focus()
+    }
+  }, [selected, close, fallback])
 }
 
 export const statuses: Record<AlertStatus, string> = {

@@ -327,6 +327,12 @@ The results establish extraction consistency on these recordings.
 
 ### G35 data gate
 
+The `ml.lab_capture audit` command reports the older five-field preflight.
+Its `passes_automated_gates` field applies to that check. The seven-field
+projection audits extraction and overlap. G35 admission additionally requires
+the four data roles and an independently instrumented validation environment
+described below. Fitting stays blocked until that evidence is available.
+
 Use `zeek-flow-v1` for the next network-flow model once data qualifies.
 HGB-34 Full and HGB-35 No TTL retain their frozen UNSW qualification
 roles and remain separate from the Zeek research path. Level 1 stays

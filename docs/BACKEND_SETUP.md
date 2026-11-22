@@ -3,9 +3,10 @@
 ## Install and start
 
 Run from the repository root in PowerShell with the existing Python 3.12.3
-virtual environment and the trusted package at
+virtual environment and the frozen G5 package at
 `artifacts/unsw-nb15-rf-v1/`. See the [G5 packaging guide](MODEL_PACKAGING.md)
-for the package layout and explicit build command.
+for the recorded digest and package layout. A rebuilt package qualifies for
+default startup only if its pipeline matches that digest.
 
 ```powershell
 & .\.venv\Scripts\python.exe -B -m pip install --only-binary=:all: -r ml/requirements-baseline.txt -r backend/requirements.txt
@@ -15,8 +16,9 @@ for the package layout and explicit build command.
 FastAPI defines the routes and OpenAPI docs, Pydantic validates JSON envelopes
 and response types, Uvicorn serves the app, and HTTPX supports the automated
 tests. Startup loads the local model once per server process. An absent,
-incompatible, or corrupt package causes startup to fail. The startup and
-prediction paths use the existing inference module and its artifact checks.
+incompatible, or corrupt package causes startup to fail. The default app
+checks the actual pipeline bytes against the recorded G5 SHA-256 before
+deserialization, in addition to the package manifest checks.
 Use Ctrl+C in the Uvicorn terminal to stop the server.
 
 ## Try the API

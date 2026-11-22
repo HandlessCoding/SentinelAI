@@ -4,11 +4,14 @@ import argparse
 from collections import Counter
 import csv
 from hashlib import file_digest, sha256
+from io import TextIOWrapper
 from itertools import batched
 import json
 import math
 from pathlib import Path
+from shutil import copyfileobj
 import sys
+from tempfile import TemporaryFile
 
 import numpy as np
 from sklearn.metrics import average_precision_score, roc_auc_score
@@ -16,10 +19,12 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 from ml.inference import (
     DEFAULT_ARTIFACT_DIR,
     FEATURE_TYPES,
+    FROZEN_PIPELINE_SHA256,
     InferenceModel,
     feature_schema,
     load_model,
     read_prediction_csv,
+    read_prediction_rows,
 )
 from ml.run_baseline import TRAINING_CSV, binary_metrics, class_distribution
 
@@ -27,8 +32,8 @@ from ml.run_baseline import TRAINING_CSV, binary_metrics, class_distribution
 TEST_CSV = Path("data/UNSW_NB15_testing-set.csv")
 FROZEN_VERSION = "unsw-nb15-rf-v1"
 FROZEN_THRESHOLD = 0.5
-FROZEN_PIPELINE_SHA256 = "8c37b095dba6cd0f58931ff91e713b0a05f84678b4829c387c788e196b8e1cd6"
 FROZEN_TRAINING_SHA256 = "bec7dd5ec88dc2a0ccc7a07879d338395ed7421750f675fd0339e07dfe0648fa"
+FROZEN_TEST_SHA256 = "734fe6642edf758f7c94d7d9149426b49d202fe8e7bf0bef47392489c3c0a559"
 FROZEN_SCHEMA_SHA256 = "474c13dcaf34dff990839d6ccd7e5bc88702d88df551cdc5d2c3005c2f30417d"
 EXPECTED_TRAINING_ROWS = 175_341
 EXPECTED_TEST_ROWS = 82_332
@@ -54,10 +59,7 @@ def load_frozen_model(artifact_dir: Path, training_path: Path) -> tuple[Inferenc
         or sha256(schema_bytes).hexdigest() != FROZEN_SCHEMA_SHA256
     ):
         raise ValueError("Manifest does not match the frozen model version, schema or threshold")
-    if (
-        metadata.get("pipeline_sha256") != FROZEN_PIPELINE_SHA256
-        or sha256_file(artifact_dir / "pipeline.pkl") != FROZEN_PIPELINE_SHA256
-    ):
+    if metadata.get("pipeline_sha256") != FROZEN_PIPELINE_SHA256:
         raise ValueError("Pipeline SHA-256 does not match the frozen G5 artifact")
     training = metadata.get("training")
     if (
@@ -67,7 +69,7 @@ def load_frozen_model(artifact_dir: Path, training_path: Path) -> tuple[Inferenc
     ):
         raise ValueError("Training CSV SHA-256 does not match the frozen G4/G5 partition")
 
-    model = load_model(artifact_dir)
+    model = load_model(artifact_dir, expected_pipeline_sha256=FROZEN_PIPELINE_SHA256)
     if model.model_version != FROZEN_VERSION or model.decision_threshold != FROZEN_THRESHOLD:
         raise ValueError("Loaded model does not match the frozen version and threshold")
     return model, metadata
@@ -101,6 +103,10 @@ def evaluate_files(
     model: InferenceModel, training_path: Path, test_path: Path, *, batch_size: int = BATCH_SIZE,
 ) -> dict:
     """Score test rows in bounded batches and audit exact predictor overlap."""
+    return _evaluate_rows(model, training_path, read_prediction_csv(test_path), batch_size=batch_size)
+
+
+def _evaluate_rows(model, training_path, test_rows, *, batch_size=BATCH_SIZE):
     if model.decision_threshold != FROZEN_THRESHOLD:
         raise ValueError("Final evaluation requires the frozen 0.5 threshold")
     training_vectors = Counter(
@@ -117,7 +123,7 @@ def evaluate_files(
     scores = []
     category_counts = Counter()
     detected_counts = Counter()
-    for rows in batched(read_prediction_csv(test_path), batch_size):
+    for rows in batched(test_rows, batch_size):
         predictors = []
         targets = []
         for index, row in enumerate(rows, start=len(actual) + 1):
@@ -192,10 +198,20 @@ def main(argv=None):
     parser.parse_args(argv)
     try:
         model, metadata = load_frozen_model(DEFAULT_ARTIFACT_DIR, TRAINING_CSV)
-        test_sha256 = sha256_file(TEST_CSV)
-        if test_sha256 == FROZEN_TRAINING_SHA256:
-            raise ValueError("Test CSV is identical to the training CSV")
-        report = evaluate_files(model, TRAINING_CSV, TEST_CSV)
+        with TEST_CSV.open("rb") as source, TemporaryFile() as snapshot:
+            test_sha256 = file_digest(source, "sha256").hexdigest()
+            if test_sha256 == FROZEN_TRAINING_SHA256:
+                raise ValueError("Test CSV is identical to the training CSV")
+            if test_sha256 != FROZEN_TEST_SHA256:
+                raise ValueError("Test CSV SHA-256 does not match the official G10 test partition")
+            source.seek(0)
+            copyfileobj(source, snapshot)
+            snapshot.seek(0)
+            if file_digest(snapshot, "sha256").hexdigest() != test_sha256:
+                raise ValueError("Test CSV changed before scoring")
+            snapshot.seek(0)
+            with TextIOWrapper(snapshot, encoding="utf-8-sig", newline="") as verified_test:
+                report = _evaluate_rows(model, TRAINING_CSV, read_prediction_rows(verified_test))
         if (
             report["overlap"]["training_rows"] != EXPECTED_TRAINING_ROWS
             or report["overlap"]["test_rows"] != EXPECTED_TEST_ROWS

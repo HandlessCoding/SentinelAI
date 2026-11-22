@@ -1,6 +1,6 @@
 # Project status and roadmap
 
-## Implemented through G27
+## Implemented and verified capabilities
 
 - Level 1 scores prepared UNSW-NB15 records, persists suspected-attack alerts,
   and supports incident review and analyst notes in a local dashboard.
@@ -12,6 +12,9 @@
   a provenance-aware registry, and real Zeek feature extraction. G27 collected
   16 verified benign flows in four sessions using one isolated VM pair.
   [Research archive](research/README.md) · [Collection results](research/lab/LEVEL_2_G27_BENIGN_COLLECTION.md)
+- G30 added offline Zeek import. G36 added continuous ingestion, checkpoint
+  recovery, and source health in Network Traffic. Recorded replay verified
+  this path. The isolated live pilot is planned. [G36 replay verification](LAB_GUIDE.md#g36-continuous-replay-verification)
 
 ## Proposed next research step
 
@@ -81,7 +84,7 @@ the dashboard. [Capture evaluation gates](research/level-2/LEVEL_2_CAPTURE_DATA_
 
 ### G36.5 engineering audit before G37
 
-Grill With Docs for G37 is complete. G36.5 planning is next, on a dedicated branch when authorized. Follow the [major milestone workflow](../AGENTS.md#major-milestone-workflow). Complete G36.5 and obtain approval before implementing the [G37 isolated pilot](adr/0002-g37-sensor-local-postgresql.md).
+Grill With Docs for G37 is complete. G36.5 work is tracked in the [codebase audit and ticket plan](G36_5_CODEBASE_AUDIT.md) and follows the [major milestone workflow](../AGENTS.md#major-milestone-workflow). Complete G36.5 and obtain approval before implementing the [G37 isolated pilot](adr/0002-g37-sensor-local-postgresql.md).
 
 Audit G1 through G36 across the backend and frontend, PostgreSQL schemas and API contracts, Zeek ingestion and capture processing, ML pipelines and feature and evaluation contracts, security, dependencies, tests, CI, and documentation. Look for dead or duplicated code, unnecessary complexity, and outdated or contradictory docs. Use the [glossary](../GLOSSARY.md) to reconcile terminology while preserving distinct concepts. Prioritize changes with clear engineering benefits and verification.
 

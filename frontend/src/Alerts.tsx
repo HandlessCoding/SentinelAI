@@ -1,7 +1,7 @@
 import { Activity, Archive, BellRing, ChevronRight, CircleAlert, Filter, Search, ShieldAlert, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { api, incidentIds, type Alert, type AlertStatus } from './api'
-import { dateTime, percentage, shortId, State, Status, statuses, useResource } from './shared'
+import { dateTime, percentage, shortId, State, Status, statuses, useDetailFocus, useResource } from './shared'
 
 export function AlertTable({ alerts }: { alerts: Alert[] }) {
   if (!alerts.length) return <State title="No alerts to show" />
@@ -98,23 +98,9 @@ export function Alerts({ alerts, selected, revision }: { alerts: Alert[]; select
   const [minimum, setMinimum] = useState('')
   const closeButton = useRef<HTMLAnchorElement>(null)
   const searchInput = useRef<HTMLInputElement>(null)
-  const restoreFocus = useRef<HTMLElement | null>(null)
   const loadDetail = useCallback((signal: AbortSignal) => api.alert(selected!, signal), [selected, revision])
   const detail = useResource(selected ? loadDetail : null)
-  useEffect(() => {
-    if (selected && closeButton.current) {
-      const current = document.activeElement
-      if (!restoreFocus.current) {
-        restoreFocus.current = current instanceof HTMLElement && current.closest('.table-scroll')
-          ? current : searchInput.current
-      }
-      closeButton.current.focus()
-    } else if (restoreFocus.current) {
-      const target = restoreFocus.current.isConnected ? restoreFocus.current : searchInput.current
-      restoreFocus.current = null
-      target?.focus()
-    }
-  }, [selected])
+  useDetailFocus(selected, closeButton, searchInput)
   const search = query.trim().toLowerCase()
   const filtered = alerts.filter(alert => {
     const terms = [alert.id, alert.batch_id, alert.model_version, 'suspected attack', statuses[alert.investigation_status]]
@@ -155,7 +141,7 @@ export function Alerts({ alerts, selected, revision }: { alerts: Alert[]; select
           <div><dt>Alert ID</dt><dd className="mono">{detail.value.id}</dd></div>
         </dl>
         <a className="button primary" href={detail.value.incident_id ? '#incidents/' + detail.value.incident_id : '#incidents/new/' + detail.value.id}>
-          {detail.value.incident_id ? 'View investigation' : 'Create investigation'}
+          {detail.value.incident_id ? 'View incident' : 'Create incident'}
         </a>
       </div>}
     </aside>}

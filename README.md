@@ -109,8 +109,9 @@ own local credentials.
 ### 3. Provide a trusted model package
 
 Place `pipeline.pkl` and `metadata.json` under
-`artifacts/unsw-nb15-rf-v1/`. With this package, the application and demo
-run without dataset CSVs.
+`artifacts/unsw-nb15-rf-v1/`. The default application requires the frozen
+G5 pipeline checksum. With that package, the application and demo run
+without dataset CSVs.
 
 For an independent local build, obtain the official **training** CSV from
 UNSW and follow the [model packaging guide](docs/MODEL_PACKAGING.md) in a

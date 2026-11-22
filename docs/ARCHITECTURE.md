@@ -73,7 +73,7 @@ sequenceDiagram
 
 `POST /csv/preview` validates an uncompressed UTF-8 CSV of up to 2 MiB and 1,000 data rows. It prepares all 42 required predictors in schema order and drops the optional `id`, `label`, and `attack_cat` columns. The preview parses inputs without scoring. `POST /predict` scores batches of up to 100 records and returns one prediction per record, with no database writes. The manual JSON workflow uses the same prediction routes. [CSV route](../backend/csv_uploads.py), [Prediction route](../backend/routes.py), [Dashboard workflow](DASHBOARD_SETUP.md)
 
-Saving deliberately calls `POST /analyze` with the prepared records. The API obtains its own inference results and writes the batch and its alerts in one transaction. It stores one suspected-attack alert per positive prediction. For the frozen model, a score strictly greater than `0.5` produces an attack prediction. PostgreSQL enforces key uniqueness, including when two requests arrive concurrently. The CSV client derives stable keys from the prepared upload and batch number. Each batch commits independently, so a retry can reuse saved receipts and finish any remaining batches. [CSV client](../frontend/src/CsvAnalysis.tsx), [Investigation routes](../backend/investigations.py), [Reliability checks](RELIABILITY_TESTING.md)
+Saving calls `POST /analyze` with the prepared records. The API obtains its own inference results and writes the batch and its alerts in one transaction. It stores one suspected-attack alert per positive prediction. For the frozen model, a score strictly greater than `0.5` produces an attack prediction. PostgreSQL enforces key uniqueness, including when two requests arrive concurrently. The CSV client shares a byte-aware batch plan between scoring and saving. Each save commits independently, so a retry can recover receipts and continue with the remaining batches. [CSV batch plan](../frontend/src/csvBatches.ts) · [Investigation routes](../backend/investigations.py) · [Retry behavior](DASHBOARD_SETUP.md#upload-and-analyze-csv)
 
 ## Stored records
 
@@ -94,6 +94,15 @@ Read-only `/traffic` routes feed the dashboard's Network Traffic page. The
 flow record stores reviewed ground truth and an optional versioned rule code.
 Level 1 predictions and analyst investigations retain their separate storage.
 [Capture import and read API](DATABASE_SETUP.md#import-reviewed-zeek-flows-offline)
+
+### Continuous Zeek ingestion
+
+The G36 worker reads a local Zeek log, committing flows, its checkpoint,
+and source health in one PostgreSQL transaction. Network Traffic shows
+recorded replay and connected sensor inputs with stable cursor browsing.
+Reviewed ground truth, rule findings, and alerts remain distinct. G36
+verified continuous ingestion with recorded replay. G37 defines the future
+isolated live pilot. [Worker and browsing](DATABASE_SETUP.md#run-continuous-zeek-ingestion) · [G36 evidence](LAB_GUIDE.md#g36-continuous-replay-verification) · [G37 decision](adr/0002-g37-sensor-local-postgresql.md)
 
 ## Runtime behavior
 

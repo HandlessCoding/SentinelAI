@@ -199,4 +199,79 @@ describe('CSV analysis', () => {
     expect(keys).toEqual([first, second, second, first, second])
     expect([...persisted.keys()]).toEqual([first, second])
   })
+
+  it('splits only oversized encoded windows and retries the exact committed batch', async () => {
+    const largeService = '\\🙂'.repeat(30_000)
+    const records = Array.from({ length: 101 }, (_, index) => ({
+      ...synthetic[0], dur: String(index), ...(index >= 10 && index < 22 ? { service: largeService } : {}),
+    }))
+    const encoded = new TextEncoder()
+    const scored: string[] = []
+    const submitted: string[] = []
+    const persisted = new Map<string, Receipt>()
+    let loseFirstResponse = true
+    const fetcher = vi.fn(async (path: string, options: RequestInit) => {
+      if (path === '/api/csv/preview') return json(prepared(records))
+      if (path === '/api/csv/receipts') return json({})
+      const body = String(options.body)
+      if (encoded.encode(body).length > 2 * 1024 * 1024) return json({ detail: 'Too large' }, 413)
+      const batch = JSON.parse(body).records as typeof records
+      if (path === '/api/predict') {
+        scored.push(body)
+        return json(predictions(batch))
+      }
+      const key = new Headers(options.headers).get('Idempotency-Key')!
+      submitted.push(key)
+      const saved = persisted.get(key) ?? receipt(String(persisted.size + 1), batch.length)
+      persisted.set(key, saved)
+      if (loseFirstResponse) {
+        loseFirstResponse = false
+        throw new TypeError('Failed to fetch')
+      }
+      expect(scored).toContain(body)
+      return json(saved)
+    })
+    vi.stubGlobal('fetch', fetcher)
+    csvMode()
+    choose(csvFile())
+    fireEvent.click(await screen.findByRole('button', { name: 'Analyze CSV' }))
+    await screen.findByText('101 of 101 records scored')
+    const save = screen.getByRole('button', { name: 'Save suspected alerts' })
+    fireEvent.click(save)
+    await screen.findByText(/Saving stopped at record 1/)
+    fireEvent.click(save)
+    await screen.findByRole('heading', { name: 'CSV analysis saved' })
+    const first = `csv-${uploadId}-1-part-1`
+    expect(submitted).toEqual([first, first, `csv-${uploadId}-1-part-2`, `csv-${uploadId}-2`])
+    expect([...persisted.values()].reduce((sum, item) => sum + item.record_count, 0)).toBe(101)
+    expect(scored.flatMap(body => (JSON.parse(body).records as typeof records).map(row => row.dur)))
+      .toEqual(records.map(row => row.dur))
+  })
+
+  it('uses the existing receipt for a legacy oversized window and only submits later windows', async () => {
+    const records = Array.from({ length: 101 }, (_, index) => ({
+      ...synthetic[0], ...(index < 12 ? { service: '\\🙂'.repeat(30_000) } : {}),
+    }))
+    const file = csvFile()
+    const keys: (string | null)[] = []
+    const fetcher = vi.fn(async (path: string, options: RequestInit) => {
+      if (path === '/api/csv/preview') return json(prepared(records))
+      if (path === '/api/csv/receipts') {
+        expect(options.body).toBe(file)
+        return json({ [`csv-${uploadId}-1`]: receipt('historic', 100) })
+      }
+      const { records: batch } = JSON.parse(String(options.body))
+      if (path === '/api/predict') return json(predictions(batch))
+      keys.push(new Headers(options.headers).get('Idempotency-Key'))
+      return json(receipt('new', batch.length))
+    })
+    vi.stubGlobal('fetch', fetcher)
+    csvMode()
+    choose(file)
+    fireEvent.click(await screen.findByRole('button', { name: 'Analyze CSV' }))
+    await screen.findByText('101 of 101 records scored')
+    fireEvent.click(screen.getByRole('button', { name: 'Save suspected alerts' }))
+    await screen.findByRole('heading', { name: 'CSV analysis saved' })
+    expect(keys).toEqual([`csv-${uploadId}-2`])
+  })
 })

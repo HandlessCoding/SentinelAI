@@ -13,7 +13,7 @@ from types import SimpleNamespace
 from ml.audit_cic_release import tuple_key
 from ml.audit_iot23_captures import MIN_CATEGORY_ROWS, MIN_CLASS_ROWS, PROTOCOLS, ROLES
 from ml.audit_iot23_kaggle import CohortOverlap
-from ml.lab_registry import DEFAULT_ROOT, lab_path, load_verified, read_object, register, time_bounds
+from ml.lab_registry import DEFAULT_ROOT, lab_path, load_verified, load_verified_capture, read_object, register, time_bounds
 from ml.lab_zeek import CORE_FIELDS, RICH_FIELDS, WindowLabels, count, read_flows, run_zeek
 from ml.level2_audit_storage import ExactGroupCounter
 
@@ -150,7 +150,8 @@ def five_tuple(flow):
 def audit(root, ids):
     if not ids or len(ids) > 256 or len(ids) != len(set(ids)):
         raise ValueError("provide between 1 and 256 unique capture IDs")
-    inputs = [load_verified(root, capture_id) for capture_id in ids]
+    verified = [load_verified_capture(root, capture_id) for capture_id in ids]
+    inputs = [(manifest, windows) for manifest, windows, _ in verified]
     manifests = [manifest for manifest, _ in inputs]
     reports = {}
     overlap = count_overlap(root, inputs, reports)
@@ -158,8 +159,7 @@ def audit(root, ids):
     failures += same_lineage(manifests)
     if len({manifest["capture"]["collection_profile"] for manifest in manifests}) != 1:
         failures.append("collection profiles differ")
-    versions = {read_object(lab_path(root, spec["zeek_receipt"]))["zeek_version"]
-                for spec in (manifest["capture"] for manifest in manifests) if "zeek_receipt" in spec}
+    versions = {receipt["zeek_version"] for _, _, receipt in verified if receipt is not None}
     if len(versions) > 1:
         failures.append("Zeek versions differ")
     if any(m["capture"]["source"] == "synthetic" for m in manifests):

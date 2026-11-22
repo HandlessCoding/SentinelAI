@@ -1,14 +1,21 @@
 """Exercise the HTTP contract with model doubles and the saved local package."""
 
+from hashlib import sha256
+import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from fastapi.testclient import TestClient
+from sklearn.pipeline import Pipeline
 
 from backend.main import app, create_app
 from backend.schemas import MAX_BATCH_SIZE
-from ml.inference import ArtifactError, FEATURE_TYPES, InputValidationError, read_prediction_csv
+from ml.inference import (
+    ARTIFACT_FORMAT_VERSION, DECISION_THRESHOLD, MODEL_VERSION, ArtifactError, FEATURE_TYPES,
+    InputValidationError, feature_schema, read_prediction_csv, runtime_versions,
+)
 from support import requires_local_model
 
 
@@ -91,6 +98,56 @@ class MockedBackendTests(unittest.TestCase):
 
 
 class RealBackendTests(unittest.TestCase):
+    def write_startup_package(self, artifact, payload):
+        (artifact / "pipeline.pkl").write_bytes(payload)
+        digest = sha256(payload).hexdigest()
+        metadata = {
+            "format_version": ARTIFACT_FORMAT_VERSION,
+            "model_version": MODEL_VERSION,
+            "decision_threshold": DECISION_THRESHOLD,
+            "feature_schema": feature_schema(),
+            "versions": runtime_versions(),
+            "pipeline_sha256": digest,
+        }
+        (artifact / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+        return digest
+
+    def test_default_startup_rejects_alternate_bytes_even_with_matching_metadata(self):
+        with TemporaryDirectory() as directory:
+            artifact = Path(directory)
+            self.write_startup_package(artifact, b"synthetic alternate package bytes")
+            with patch("backend.main.DEFAULT_ARTIFACT_DIR", artifact), patch("ml.inference.pickle.loads") as deserialize:
+                with self.assertRaisesRegex(ArtifactError, "digest does not match the frozen G5 artifact"):
+                    with TestClient(app, base_url="http://127.0.0.1"):
+                        self.fail("Default startup should reject alternate fitted bytes")
+                deserialize.assert_not_called()
+
+    def test_default_startup_accepts_pinned_fixture_without_reading_datasets(self):
+        with TemporaryDirectory() as directory:
+            artifact = Path(directory)
+            payload = b"synthetic pinned package bytes"
+            digest = self.write_startup_package(artifact, payload)
+            pipeline = Mock(spec=Pipeline, n_features_in_=len(FEATURE_TYPES), classes_=[0, 1])
+            original_open = Path.open
+
+            def reject_csv(path, *args, **kwargs):
+                self.assertNotEqual(path.suffix.lower(), ".csv", "Startup must not read dataset CSVs")
+                return original_open(path, *args, **kwargs)
+
+            with (
+                patch("backend.main.DEFAULT_ARTIFACT_DIR", artifact),
+                patch("backend.main.FROZEN_PIPELINE_SHA256", digest),
+                patch("ml.inference.pickle.loads", return_value=pipeline) as deserialize,
+                patch.object(Path, "open", new=reject_csv),
+                TestClient(app, base_url="http://127.0.0.1") as client,
+            ):
+                self.assertEqual(client.get("/model/info").json(), {
+                    "model_version": "unsw-nb15-rf-v1",
+                    "expected_feature_count": 42,
+                    "decision_threshold": 0.5,
+                })
+            deserialize.assert_called_once_with(payload)
+
     def test_startup_fails_when_the_configured_artifact_cannot_be_loaded(self):
         unavailable = Mock(side_effect=ArtifactError("package unavailable"))
         with self.assertRaises(ArtifactError):
