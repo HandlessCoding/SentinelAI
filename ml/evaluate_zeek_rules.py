@@ -8,14 +8,12 @@ from pathlib import Path
 from backend.zeek_rules import RULES_BY_STATE, rule_for_flow
 from ml.lab_capture import capture_rows, same_lineage
 from ml.lab_registry import load_verified
+from ml.lab_zeek import CONNECTION_STATES
 
 
 MAX_CAPTURES = 64
 MAX_ROWS = 10_000
 MAX_ARTIFACT_BYTES = 64 * 1024**2
-TCP_STATES = frozenset((
-    "S0", "S1", "SF", "REJ", "S2", "S3", "RSTO", "RSTR", "RSTOS0", "RSTRH", "SH", "SHR", "OTH",
-))
 
 
 def count_rows(source, rows):
@@ -39,7 +37,7 @@ def count_rows(source, rows):
             counts["excluded:outside_tcp_scope"] += 1
         elif state is None and flow.issues.get("conn_state") == "missing":
             counts["excluded:missing_tcp_state"] += 1
-        elif state not in TCP_STATES:
+        elif state not in CONNECTION_STATES:
             counts["excluded:unrecognized_tcp_state"] += 1
         else:
             code = rule_for_flow(protocol, state)

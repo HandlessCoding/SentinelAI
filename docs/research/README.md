@@ -35,6 +35,7 @@ at each milestone. Their setup commands describe those runs. Use the
 | G32.1 | [Unattended fitting-only experiments](level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g321-unattended-fitting-only-research) |
 | G32.2 | [Extended discovery, calibration, and locked internal challenge](level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g322-extended-overnight-study) |
 | G33 | [Error analysis, qualification, and Zeek feature compatibility](level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g33-error-analysis-and-qualification) |
+| G34 | [UNSW exporter assessment and Zeek-native feature contract](../LAB_GUIDE.md#qualify-the-zeek-native-feature-contract) |
 
 ## Controlled lab records
 
