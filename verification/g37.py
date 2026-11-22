@@ -26,6 +26,8 @@ def load_manifest(root: Path) -> dict:
 
 def flow_identity(native_line: bytes) -> FlowIdentity:
     """Derive a connected sensor key without calling the worker or its Zeek parser."""
+    if len(native_line) > 64 * 1024:
+        raise ValueError("Zeek line exceeds the connected sensor limit")
     record = json.loads(native_line, parse_float=Decimal)
     if not isinstance(record, dict):
         raise ValueError("Expected a native Zeek object")
@@ -40,6 +42,8 @@ def flow_identity(native_line: bytes) -> FlowIdentity:
     nanoseconds, remainder = divmod(numerator * 1_000_000_000, denominator)
     if remainder:
         raise ValueError("First-packet timestamp exceeds nanosecond precision")
+    if nanoseconds > 2**63 - 1:
+        raise ValueError("First-packet timestamp exceeds PostgreSQL bigint range")
     # The validated UID needs no JSON escaping. Source scoping is a separate database column.
     key = sha256(f'["{uid}",{nanoseconds}]'.encode("ascii")).hexdigest()
     return FlowIdentity(uid, nanoseconds, key)

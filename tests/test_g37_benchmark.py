@@ -26,6 +26,8 @@ POLL_SECONDS = 0.025
 CARDINALITIES = (10_000, 100_000)
 PAGE_SIZES = (25, 100)
 WORKER_THREAD = "g37-ingest"
+PACE_BATCHES = 60
+PACE_ROWS = 20
 
 
 def synthetic_rows(first, total):
@@ -62,9 +64,9 @@ class SyntheticBenchmark(PostgreSQLSchemaTestCase):
             try:
                 self.wait_for_commit(worker, source, 0)
                 cpu_started = process_time()
-                latencies = self.measure_latency(log, source, worker)
+                lifecycle = self.measure_latency(log, source, worker)
                 paced = self.measure_paced_input(log, source, worker)
-                loads = self.measure_load(log, source, worker, 205)
+                loads = self.measure_load(log, source, worker, 5 + PACE_BATCHES * PACE_ROWS)
                 cpu_seconds = process_time() - cpu_started
             finally:
                 stop.set()
@@ -81,7 +83,7 @@ class SyntheticBenchmark(PostgreSQLSchemaTestCase):
             "postgres": postgres,
             "migration": revision,
             "poll_target_ms": POLL_SECONDS * 1000,
-            "latency": latency_stats(latencies),
+            "latency": lifecycle,
             "worker_and_harness_cpu_seconds": round(cpu_seconds, 3),
             "worker_and_harness_peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
             "paced_input": paced,
@@ -114,46 +116,66 @@ class SyntheticBenchmark(PostgreSQLSchemaTestCase):
 
     def measure_latency(self, log, source, worker):
         latencies = []
-        for index in range(1, 6):
-            row = synthetic_rows(index, 1)
-            expected_key = flow_identity(row).stream_key
-            with log.open("ab") as writer:
-                writer.write(row[:-1])
-            last_incomplete = monotonic_ns()
-            with log.open("rb") as reader:
-                reader.seek(-1, os.SEEK_END)
-                self.assertNotEqual(reader.read(), b"\n")
-            with log.open("ab") as writer:
-                writer.write(b"\n")
-            with log.open("rb") as reader:
-                reader.seek(-1, os.SEEK_END)
-                self.assertEqual(reader.read(), b"\n")
-            complete = monotonic_ns()
-            committed, _ = self.wait_for_commit(worker, source, log.stat().st_size, expected_key)
-            latencies.append(persistence_upper_bound_ns(last_incomplete, complete, committed))
-        return latencies
+        visibility = []
+        with self.make_client(synthetic_predictions) as http:
+            for index in range(1, 6):
+                row = synthetic_rows(index, 1)
+                expected_key = flow_identity(row).stream_key
+                with log.open("ab") as writer:
+                    writer.write(row[:-1])
+                last_incomplete = monotonic_ns()
+                with log.open("rb") as reader:
+                    reader.seek(-1, os.SEEK_END)
+                    self.assertNotEqual(reader.read(), b"\n")
+                with log.open("ab") as writer:
+                    writer.write(b"\n")
+                with log.open("rb") as reader:
+                    reader.seek(-1, os.SEEK_END)
+                    self.assertEqual(reader.read(), b"\n")
+                complete = monotonic_ns()
+                committed, _ = self.wait_for_commit(worker, source, log.stat().st_size, expected_key)
+                latencies.append(persistence_upper_bound_ns(last_incomplete, complete, committed))
+                page = http.get("/traffic/flows", params={"limit": 1}).raise_for_status().json()
+                self.assertEqual(page["flows"][0]["source_row"], index)
+                visibility.append(monotonic_ns() - last_incomplete)
+        return {"committed_read": latency_stats(latencies), "subsequent_api_read": latency_stats(visibility)}
 
     def measure_paced_input(self, log, source, worker):
         started = monotonic_ns()
-        observed = 0
-        for batch in range(10):
+        samples = []
+        for batch in range(PACE_BATCHES):
             remaining_ns = started + batch * 100_000_000 - monotonic_ns()
             sleep(max(0, remaining_ns) / 1e9)
             with log.open("ab") as writer:
-                writer.write(synthetic_rows(6 + batch * 20, 20))
-            with Session(self.engine) as reader:
-                state = reader.get(ZeekStream, source.capture_id)
-                observed = max(observed, log.stat().st_size - state.byte_offset)
+                writer.write(synthetic_rows(6 + batch * PACE_ROWS, PACE_ROWS))
+            if (batch + 1) % 5 == 0:
+                with Session(self.engine) as reader:
+                    state = reader.get(ZeekStream, source.capture_id)
+                    samples.append(
+                        {
+                            "elapsed_ms": round((monotonic_ns() - started) / 1e6, 3),
+                            "appended_flows": (batch + 1) * PACE_ROWS,
+                            "committed_flows": state.rows_seen
+                            - state.rejected_rows
+                            - state.duplicate_rows
+                            - 5,
+                            "uncommitted_bytes": log.stat().st_size - state.byte_offset,
+                        }
+                    )
         appended = monotonic_ns()
         committed, observed_worker = self.wait_for_commit(worker, source, log.stat().st_size)
-        self.assertEqual(self.count(ZeekFlow), 205)
+        total = PACE_BATCHES * PACE_ROWS
+        paced_duration = (appended - started) / 1e9 + 0.1
+        self.assertEqual(self.count(ZeekFlow), 5 + total)
         return {
             "target_flows_per_second": 200,
-            "flows": 200,
-            "first_to_last_append_ms": round((appended - started) / 1e6, 3),
-            "commits_per_second_until_drained": round(200 * 1e9 / (committed - started), 2),
-            "max_sampled_uncommitted_bytes": observed,
+            "flows": total,
+            "window_seconds": round(paced_duration, 3),
+            "delivered_flows_per_second": round(total / paced_duration, 2),
+            "commits_per_second_until_drained": round(total * 1e9 / (committed - started), 2),
+            "max_sampled_uncommitted_bytes": max(sample["uncommitted_bytes"] for sample in samples),
             "max_observed_worker_backlog_bytes": observed_worker,
+            "samples": samples,
         }
 
     def measure_load(self, log, source, worker, rows):

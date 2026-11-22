@@ -22,13 +22,15 @@ function endpoint(host: string | null, port: number | null) {
   return `${host.includes(':') ? '[' + host + ']' : host}:${port}`
 }
 
+const firstPacketLabel = (observedAt: string) => observedAt.replace('T', ' ').slice(0, 19)
+
 function TrafficTable({ flows }: { flows: TrafficFlow[] }) {
   return <div className="table-scroll" role="region" aria-label="Flow table" tabIndex={0}><table>
     <thead><tr><th>First packet (UTC)</th><th>Originator</th><th>Responder</th><th>Protocol</th><th>State</th>
       <th>Input kind</th><th>Reviewed ground truth</th><th>Rule finding</th></tr></thead>
     <tbody>{flows.map(flow => <tr key={flow.id}>
-      <td><a href={'#traffic/' + flow.id} aria-label={'View flow ' + shortId(flow.id)}><time dateTime={flow.observed_at}>
-        {flow.observed_at.replace('T', ' ').slice(0, 19)}</time></a></td>
+      <td><a href={'#traffic/' + flow.id} aria-label={`${firstPacketLabel(flow.observed_at)} UTC, view flow ${shortId(flow.id)}`}><time dateTime={flow.observed_at}>
+        {firstPacketLabel(flow.observed_at)}</time></a></td>
       <td>{endpoint(flow.orig_host, flow.orig_port)}</td><td>{endpoint(flow.resp_host, flow.resp_port)}</td>
       <td>{protocols[flow.proto]}</td><td>{show(flow.conn_state)}</td><td>{sources[flow.source]}</td>
       <td>{labels[flow.ground_truth]}</td>

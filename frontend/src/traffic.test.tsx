@@ -51,7 +51,7 @@ it('shows real API counts, filters flow pages, and separates findings from revie
   fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }))
   await waitFor(() => expect(fetcher.mock.calls.some(([path]) =>
     path.includes('protocol=tcp') && path.includes('has_finding=true'))).toBe(true))
-  const link = await screen.findByRole('link', { name: 'View flow 12345678' })
+  const link = await screen.findByRole('link', { name: /UTC, view flow 12345678/ })
   link.focus()
   window.location.hash = link.getAttribute('href')!
   const panel = await screen.findByRole('complementary', { name: 'Flow details' })

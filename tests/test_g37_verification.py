@@ -2,16 +2,19 @@
 
 import sys
 import unittest
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from time import monotonic_ns
+from threading import Event
+from time import monotonic_ns, sleep
 
 from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 from test_investigations import PostgreSQLSchemaTestCase
 
 from backend.models import ZeekFlow, ZeekStream
-from backend.zeek_stream import Source, ingest_batch
+from backend.zeek_stream import Source, ingest_batch, run_worker
 from verification.g37 import flow_identity, load_manifest, persistence_upper_bound_ns
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +32,12 @@ class ObserverTests(unittest.TestCase):
         identity = flow_identity(FIRST)
         self.assertEqual((identity.uid, identity.timestamp_ns), ("CG37", 1700000000123456789))
         self.assertNotEqual(identity.stream_key, flow_identity(SECOND).stream_key)
+        largest = b'{"uid":"CG37","ts":9223372036.854775807,"proto":"tcp"}\n'
+        self.assertEqual(flow_identity(largest).timestamp_ns, 2**63 - 1)
         for raw in (FIRST.replace(b"123456789", b"1234567891"), b'{"uid":"CG37"}'):
+            with self.assertRaises(ValueError):
+                flow_identity(raw)
+        for raw in (largest.replace(b"854775807", b"854775808"), FIRST + b" " * 65536):
             with self.assertRaises(ValueError):
                 flow_identity(raw)
 
@@ -40,6 +48,26 @@ class ObserverTests(unittest.TestCase):
 
 
 class CommittedIdentityTests(PostgreSQLSchemaTestCase):
+    @contextmanager
+    def running_worker(self, source):
+        stop = Event()
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            worker = pool.submit(run_worker, self.engine, source, stop)
+            try:
+                yield
+            finally:
+                stop.set()
+                worker.result(timeout=10)
+
+    def wait_for(self, observe, predicate):
+        deadline = monotonic_ns() + 10_000_000_000
+        while monotonic_ns() < deadline:
+            state, keys = observe()
+            if state is not None and predicate(state):
+                return state, keys, monotonic_ns()
+            sleep(0.02)
+        self.fail("Expected G37 state did not commit")
+
     @unittest.skipUnless(sys.platform.startswith("linux"), "G37 retained-generation regression targets Linux")
     def test_interrupted_handoff_keeps_committed_evidence_until_restart(self):
         with TemporaryDirectory() as folder:
@@ -59,8 +87,8 @@ class CommittedIdentityTests(PostgreSQLSchemaTestCase):
                     keys = set(reader.scalars(select(ZeekFlow.stream_key)))
                     return state, keys
 
-            process()
-            before, first_keys = observe()
+            with self.running_worker(source):
+                before, first_keys, _ = self.wait_for(observe, lambda state: state.byte_offset == len(FIRST))
             with active.open("ab") as stream:
                 stream.write(SECOND)
             info = active.stat()
@@ -92,26 +120,33 @@ class CommittedIdentityTests(PostgreSQLSchemaTestCase):
                 (blocked.byte_offset, blocked.last_drained_file, first_keys),
             )
 
-            process()
-            process()
-            partial, keys = observe()
-            self.assertEqual(
-                (partial.last_drained_file, partial.byte_offset, partial.duplicate_rows),
-                (archive_identity, len(FIRST), 1),
-            )
-            self.assertEqual(keys, {flow_identity(raw).stream_key for raw in (FIRST, SECOND)})
-            self.assertEqual(retained.read_bytes(), archive_bytes)
-            self.assertEqual(retained.stat().st_ino, info.st_ino)
-            last_incomplete = monotonic_ns()
-            self.assertFalse(active.read_bytes().endswith(b"\n"))
-            with active.open("ab") as stream:
-                stream.write(b"\n")
-            self.assertTrue(active.read_bytes().endswith(b"\n"))
-            complete = monotonic_ns()
-            process()
-            finished, keys = observe()
-            committed = monotonic_ns()
-            self.assertGreaterEqual(persistence_upper_bound_ns(last_incomplete, complete, committed), 0)
+            restarted = monotonic_ns()
+            with self.running_worker(source):
+                _, _, heartbeat = self.wait_for(
+                    observe, lambda state: state.heartbeat_at > unchanged.heartbeat_at
+                )
+                partial, keys, acknowledged = self.wait_for(observe, lambda state: state.duplicate_rows == 1)
+                self.assertLessEqual(restarted, heartbeat)
+                self.assertLessEqual(heartbeat, acknowledged)
+                self.assertEqual(
+                    (partial.last_drained_file, partial.byte_offset), (archive_identity, len(FIRST))
+                )
+                self.assertGreater(partial.last_success_at, before.last_success_at)
+                self.assertEqual(keys, {flow_identity(raw).stream_key for raw in (FIRST, SECOND)})
+                self.assertEqual(retained.read_bytes(), archive_bytes)
+                self.assertEqual(retained.stat().st_ino, info.st_ino)
+                last_incomplete = monotonic_ns()
+                self.assertFalse(active.read_bytes().endswith(b"\n"))
+                with active.open("ab") as stream:
+                    stream.write(b"\n")
+                self.assertTrue(active.read_bytes().endswith(b"\n"))
+                complete = monotonic_ns()
+                finished, keys, committed = self.wait_for(
+                    observe,
+                    lambda state: state.byte_offset == active.stat().st_size,
+                )
+                bound = persistence_upper_bound_ns(last_incomplete, complete, committed)
+                self.assertGreaterEqual(bound, complete - last_incomplete)
             self.assertEqual((finished.byte_offset, finished.backlog_bytes), (active.stat().st_size, 0))
             self.assertEqual(keys, {flow_identity(raw).stream_key for raw in (FIRST, SECOND, third)})
 
