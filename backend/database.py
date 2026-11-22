@@ -1,8 +1,10 @@
 """Local PostgreSQL configuration and request-scoped database sessions."""
 
 from functools import lru_cache
+from ipaddress import ip_address
 import os
 from pathlib import Path
+import socket
 
 from dotenv import dotenv_values
 from sqlalchemy import URL, create_engine
@@ -11,6 +13,19 @@ from sqlalchemy.orm import Session
 
 class DatabaseConfigurationError(RuntimeError):
     """Required local database settings are missing or invalid."""
+
+
+def _loopback_addresses(host: str) -> list[str]:
+    if host != "localhost":
+        return [host]
+    try:
+        answers = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM, proto=socket.IPPROTO_TCP)
+        addresses = list(dict.fromkeys(answer[4][0] for answer in answers))
+        if addresses and all(ip_address(address).is_loopback for address in addresses):
+            return addresses
+    except (OSError, ValueError):
+        pass
+    raise DatabaseConfigurationError("PostgreSQL localhost must resolve exclusively to loopback addresses")
 
 
 def database_url(*, testing=False):
@@ -35,7 +50,18 @@ def database_url(*, testing=False):
             raise ValueError
     except (TypeError, ValueError) as error:
         raise DatabaseConfigurationError("Configure a valid PostgreSQL port") from error
-    return URL.create("postgresql+psycopg", username, password, host, port, database)
+    addresses = _loopback_addresses(host)
+    # An explicit numeric address prevents libpq environment/service defaults
+    # from redirecting the connection or causing a second hostname resolution.
+    return URL.create(
+        "postgresql+psycopg",
+        username,
+        password,
+        ",".join([host] * len(addresses)),
+        port,
+        database,
+        query={"hostaddr": ",".join(addresses)},
+    )
 
 
 @lru_cache(maxsize=1)

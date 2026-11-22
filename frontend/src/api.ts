@@ -143,6 +143,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return body as T
 }
 
+export const batchBody = (records: NetworkRecord[]) => JSON.stringify({ records })
+
 export const api = {
   health: (signal?: AbortSignal) => request<{ status: 'ok' }>('/health', { signal }),
   model: (signal?: AbortSignal) => request<ModelInfo>('/model/info', { signal }),
@@ -175,11 +177,15 @@ export const api = {
     request<PreparedCsv>('/csv/preview', {
       method: 'POST', headers: { 'Content-Type': 'text/csv' }, body: file, signal,
     }),
+  csvReceipts: (file: File, signal?: AbortSignal) =>
+    request<Record<string, Receipt>>('/csv/receipts', {
+      method: 'POST', headers: { 'Content-Type': 'text/csv' }, body: file, signal,
+    }),
   predict: (records: NetworkRecord[], signal?: AbortSignal) =>
-    request<PredictionBatch>('/predict', { method: 'POST', body: JSON.stringify({ records }), signal }),
+    request<PredictionBatch>('/predict', { method: 'POST', body: batchBody(records), signal }),
   analyze: (records: NetworkRecord[], key: string, signal?: AbortSignal) =>
     request<Receipt>('/analyze', {
-      method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ records }), signal,
+      method: 'POST', headers: { 'Idempotency-Key': key }, body: batchBody(records), signal,
     }),
 }
 

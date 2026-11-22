@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from ml.lab_capture import capture_rows
-from ml.lab_registry import lab_path, load_verified, read_object
+from ml.lab_registry import load_verified_capture
 from ml.zeek_flow_v1 import FIELDS, MAX_ARTIFACT_BYTES, MAX_RECORDS, ZEEK_VERSION, inspect_predictors
 
 
@@ -41,11 +41,10 @@ def inspect_history_predictors(features, *, issues=None):
 
 
 def audit_capture(root, capture_id):
-    manifest, windows = load_verified(root, capture_id, max_artifact_bytes=MAX_ARTIFACT_BYTES)
+    manifest, windows, receipt = load_verified_capture(root, capture_id, max_artifact_bytes=MAX_ARTIFACT_BYTES)
     spec = manifest["capture"]
     if spec["source"] == "synthetic":
         raise ValueError("history coverage requires a real capture")
-    receipt = read_object(lab_path(root, spec["zeek_receipt"]))
     if receipt["zeek_version"].split()[-1:] != [ZEEK_VERSION]:
         raise ValueError(f"expected a Zeek {ZEEK_VERSION} receipt")
 

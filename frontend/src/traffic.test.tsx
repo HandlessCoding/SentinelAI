@@ -52,6 +52,7 @@ it('shows real API counts, filters flow pages, and separates findings from revie
   await waitFor(() => expect(fetcher.mock.calls.some(([path]) =>
     path.includes('protocol=tcp') && path.includes('has_finding=true'))).toBe(true))
   const link = await screen.findByRole('link', { name: 'View flow 12345678' })
+  link.focus()
   window.location.hash = link.getAttribute('href')!
   const panel = await screen.findByRole('complementary', { name: 'Flow details' })
   expect(await within(panel).findByText('tcp-rejected-v1')).toBeTruthy()
@@ -59,6 +60,9 @@ it('shows real API counts, filters flow pages, and separates findings from revie
   expect(within(panel).getByText('test-session')).toBeTruthy()
   expect(within(panel).getByText('Unavailable')).toBeTruthy()
   expect(fetcher.mock.calls.some(([path]) => path.startsWith('/api/alerts'))).toBe(false)
+  expect(document.activeElement).toBe(within(panel).getByRole('link', { name: 'Close flow details' }))
+  fireEvent.keyDown(panel, { key: 'Escape' })
+  await waitFor(() => expect(document.activeElement).toBe(link))
 })
 
 it('offers a retry for the traffic query and guides the analyst through an empty import list', async () => {
@@ -97,15 +101,17 @@ it('polls incoming records and presents replay health and filters', async () => 
   })
   vi.stubGlobal('fetch', fetcher)
   await act(async () => { render(<App />) })
-  expect(screen.getByText('No continuous source registered')).toBeTruthy()
+  expect(screen.getByText('No ingestion source registered')).toBeTruthy()
   appended = true
   await act(async () => { await vi.advanceTimersByTimeAsync(TRAFFIC_POLL_MS) })
   const health = screen.getByRole('region', { name: 'Ingestion source health' })
   expect(within(health).getByText('0 bytes pending')).toBeTruthy()
   expect(within(health).getByText(/2 rejected/)).toBeTruthy()
   expect(within(health).getByText('local-replay')).toBeTruthy()
+  expect(within(health).getByRole('cell', { name: /Original capture ID recording/ })).toBeTruthy()
+  expect(screen.getByText('Stored flows')).toBeTruthy()
   expect(within(screen.getByRole('region', { name: 'Flow table' })).getByText('Recorded replay')).toBeTruthy()
-  fireEvent.change(screen.getByRole('combobox', { name: 'Filter by source' }), { target: { value: 'recorded_replay' } })
+  fireEvent.change(screen.getByRole('combobox', { name: 'Filter by input kind' }), { target: { value: 'recorded_replay' } })
   fireEvent.change(screen.getByRole('combobox', { name: 'Sort connections' }), { target: { value: 'ingested' } })
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Apply filters' })) })
   expect(fetcher.mock.calls.some(([path]) => path.includes('source=recorded_replay&order=ingested'))).toBe(true)

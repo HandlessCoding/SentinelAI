@@ -33,6 +33,14 @@ class CSVUploadTests(unittest.TestCase):
     def upload(self, body):
         return self.client.post("/csv/preview", content=body, headers=self.headers)
 
+    def test_preview_rejects_a_record_that_cannot_fit_in_a_json_request(self):
+        long_field = "\x01" * 120_000
+        body = make_csv([{**SAMPLE, "proto": long_field, "service": long_field, "state": long_field}])
+        self.assertLess(len(body), 2 * 1024**2)
+        response = self.upload(body)
+        self.assertEqual(response.status_code, 413)
+        self.assertIn("Record 1", response.json()["detail"])
+
     def test_preview_preserves_record_order_and_strips_optional_metadata(self):
         rows = [
             {**SAMPLE, "id": "wire-1", "label": "metadata", "attack_cat": "ignored"},

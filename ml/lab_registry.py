@@ -50,15 +50,26 @@ def lab_path(root, name):
     return path
 
 
-def read_object(path):
+def _read_metadata(path, limit=1024**2):
     with path.open("rb") as stream:
-        blob = stream.read(1024**2 + 1)
-    if len(blob) > 1024**2:
-        raise ValueError("manifest or receipt exceeds 1 MiB")
+        before = file_identity(fstat(stream.fileno()))
+        blob = stream.read(limit + 1)
+        if len(blob) > limit:
+            raise ValueError("manifest or receipt exceeds the metadata size limit")
+        if before != file_identity(fstat(stream.fileno())) or before != file_identity(path.stat()):
+            raise ValueError("source file changed while reading metadata")
+    return blob
+
+
+def _decode_object(blob):
     obj = json.loads(blob)
     if not isinstance(obj, dict):
         raise ValueError("expected a JSON object")
     return obj
+
+
+def read_object(path):
+    return _decode_object(_read_metadata(path))
 
 
 def write_new_object(path, obj):
@@ -158,7 +169,7 @@ def validate_spec(spec):
     return windows
 
 
-def verified_hashes(root, spec, *, max_artifact_bytes=None):
+def _verified_artifacts(root, spec, *, max_artifact_bytes=None):
     paths = {"pcap": spec["pcap"], "conn_log": spec["conn_log"]}
     paths.update({name: spec[name] for name in ("authorization", "zeek_receipt") if name in spec})
     resolved = {name: lab_path(root, path) for name, path in paths.items()}
@@ -178,15 +189,23 @@ def verified_hashes(root, spec, *, max_artifact_bytes=None):
         raise ValueError("permission record is empty")
     hashes = {name: digest(path, pcap=name == "pcap",
                            max_bytes=max_artifact_bytes if name in {"pcap", "conn_log"} else max_metadata)
-              for name, path in resolved.items()}
+              for name, path in resolved.items() if name != "zeek_receipt"}
+    receipt = None
     if "zeek_receipt" in resolved:
-        receipt = read_object(resolved["zeek_receipt"])
+        blob = _read_metadata(resolved["zeek_receipt"], 1024**2 if max_metadata is None else max_metadata)
+        receipt = _decode_object(blob)
+        hashes["zeek_receipt"] = sha256(blob).hexdigest()
         if (receipt.get("version") != 1 or receipt.get("settings") != list(ZEEK_SETTINGS)
                 or receipt.get("pcap_sha256") != hashes["pcap"]
                 or receipt.get("conn_sha256") != hashes["conn_log"]
                 or not isinstance(receipt.get("zeek_version"), str) or not receipt["zeek_version"].strip()):
             raise ValueError("offline Zeek receipt does not match the capture and log")
-    return {**hashes, "evidence": evidence_hashes}
+    return {**hashes, "evidence": evidence_hashes}, receipt
+
+
+def verified_hashes(root, spec, *, max_artifact_bytes=None):
+    hashes, _ = _verified_artifacts(root, spec, max_artifact_bytes=max_artifact_bytes)
+    return hashes
 
 
 def manifest_path(root, capture_id):
@@ -205,10 +224,18 @@ def register(root, spec):
 
 
 def load_verified(root, capture_id, *, max_artifact_bytes=None):
+    manifest, windows, _ = load_verified_capture(root, capture_id, max_artifact_bytes=max_artifact_bytes)
+    return manifest, windows
+
+
+def load_verified_capture(root, capture_id, *, max_artifact_bytes=None):
+    """Return the verified manifest, label windows, and receipt parsed from its hashed bytes."""
     manifest = read_object(manifest_path(root, capture_id))
     spec = manifest["capture"]
     windows = validate_spec(spec)
-    if (spec["capture_id"] != capture_id
-            or manifest["sha256"] != verified_hashes(root, spec, max_artifact_bytes=max_artifact_bytes)):
+    if spec["capture_id"] != capture_id:
         raise ValueError(f"{capture_id} manifest or artifact checksum mismatch")
-    return manifest, windows
+    hashes, receipt = _verified_artifacts(root, spec, max_artifact_bytes=max_artifact_bytes)
+    if manifest["sha256"] != hashes:
+        raise ValueError(f"{capture_id} manifest or artifact checksum mismatch")
+    return manifest, windows, receipt

@@ -1,6 +1,7 @@
 import { FileSpreadsheet, FileUp, Play, ShieldAlert, X } from 'lucide-react'
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { api, type PredictionBatch, type PreparedCsv, type Receipt } from './api'
+import { planCsvBatches, type CsvBatch } from './csvBatches'
 import { message, percentage, shortId, State } from './shared'
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024
@@ -12,7 +13,7 @@ type PredictionInfo = Pick<PredictionBatch, 'model_version' | 'decision_threshol
 type Operation = 'upload' | 'score' | 'save'
 
 export function CsvAnalysis({ refresh }: { refresh: () => void }) {
-  const [prepared, setPrepared] = useState<PreparedCsv>()
+  const [prepared, setPrepared] = useState<PreparedCsv & { batches: CsvBatch[]; file: File }>()
   const [fileName, setFileName] = useState('')
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState<Operation | null>(null)
@@ -95,11 +96,8 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
     if (!controller) return
     try {
       const result = await api.previewCsv(file, controller.signal)
-      if (!Number.isInteger(result.batch_size) || result.batch_size < 1 || result.batch_size > 100) {
-        throw new Error('The API returned an invalid batch size.')
-      }
       if (!controller.signal.aborted) {
-        setPrepared(result)
+        setPrepared({ ...result, batches: planCsvBatches(result), file })
         setFileName(file.name)
       }
     } catch (error) {
@@ -122,8 +120,10 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
     let cursor = predictions.length
     let info = predictionInfo
     try {
-      while (cursor < total && !controller.signal.aborted) {
-        const batch = prepared.records.slice(cursor, cursor + prepared.batch_size)
+      for (const { start, end } of prepared.batches) {
+        if (end <= cursor) continue
+        if (controller.signal.aborted) return
+        const batch = prepared.records.slice(start, end)
         const response = await api.predict(batch, controller.signal)
         if (controller.signal.aborted) return
         if (response.predictions.length !== batch.length) {
@@ -138,7 +138,7 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
           setPredictionInfo(info)
         }
         setPredictions(current => [...current, ...response.predictions])
-        cursor += batch.length
+        cursor = end
       }
     } catch (error) {
       if (!controller.signal.aborted) {
@@ -155,23 +155,27 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
     if (!controller) return
     let cursor = savedRecords
     try {
-      while (cursor < total && !controller.signal.aborted) {
-        const batch = prepared.records.slice(cursor, cursor + prepared.batch_size)
-        const batchNumber = Math.floor(cursor / prepared.batch_size) + 1
-        const receipt = await api.analyze(batch, `csv-${prepared.upload_id}-${batchNumber}`, controller.signal)
+      const legacyReceipts = prepared.batches.some(batch => batch.legacy && batch.end > cursor)
+        ? await api.csvReceipts(prepared.file, controller.signal) : {}
+      for (const { start, end, key, legacy } of prepared.batches) {
+        if (end <= cursor) continue
         if (controller.signal.aborted) return
-        if (receipt.record_count !== batch.length) {
+        const previous = legacy && legacyReceipts[legacy.key]
+        const next = previous ? legacy.end : end
+        const receipt = previous || await api.analyze(prepared.records.slice(start, end), key, controller.signal)
+        if (controller.signal.aborted) return
+        if (receipt.record_count !== next - start) {
           throw new Error('The API returned a receipt for a different number of records.')
         }
         setReceipts(current => [...current, receipt])
-        cursor += batch.length
+        cursor = next
       }
     } catch (error) {
       if (!controller.signal.aborted) {
         setError(`Saving stopped at record ${cursor + 1}. Completed batches are retained. ${message(error)}`)
       }
     } finally {
-      if (!controller.signal.aborted && cursor > savedRecords) refresh()
+      if (!controller.signal.aborted) refresh()
       finish(controller)
     }
   }
@@ -246,7 +250,7 @@ export function CsvAnalysis({ refresh }: { refresh: () => void }) {
           <div><dt>Predicted normal</dt><dd>{predictions.length - attacks}</dd></div>
         </dl>
         <div className="table-scroll" role="region" aria-label="Scrollable prediction results" tabIndex={0}><table aria-label="CSV predictions">
-          <thead><tr><th>Record</th><th>Prediction</th><th>Attack probability</th><th aria-label="Inspect" /></tr></thead>
+          <thead><tr><th>Record</th><th>Model prediction</th><th>Attack probability</th><th aria-label="Inspect" /></tr></thead>
           <tbody>{predictions.slice(page * RESULT_ROWS, (page + 1) * RESULT_ROWS).map((prediction, index) => {
             const row = page * RESULT_ROWS + index
             return <tr key={row}>

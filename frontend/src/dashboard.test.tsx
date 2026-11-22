@@ -118,6 +118,65 @@ describe('dashboard', () => {
     expect(notePath).toBe('/api/incidents/incident-1/notes')
     expect(JSON.parse(String(noteOptions.body))).toEqual({ author: 'Example analyst', text: 'Reviewed evidence.' })
   })
+
+  it('keeps linked incidents available when a direct link is stale', async () => {
+    let detailLoads = 0
+    const fetcher = vi.fn(async (path: string) => {
+      if (path.endsWith('/incident-1')) return json(incident)
+      return ++detailLoads === 1 ? json({ detail: 'Incident not found.' }, 404)
+        : json({ ...incident, id: 'obsolete', title: 'Recovered incident' })
+    })
+    vi.stubGlobal('fetch', fetcher)
+    const change = vi.fn()
+    render(<Investigations alerts={[second]} selected="obsolete" mode="incidents" revision={0} change={change} />)
+    expect(await screen.findByRole('link', { name: /Test incident/ })).toBeTruthy()
+    expect(await screen.findByText('Could not load incident')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry incident' }))
+    expect(await screen.findByRole('heading', { name: 'Recovered incident' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Test incident/ })).toBeTruthy()
+    expect(fetcher.mock.calls.filter(([path]) => path.endsWith('/incident-1'))).toHaveLength(1)
+    expect(change).not.toHaveBeenCalled()
+  })
+
+  it('loads a selected linked incident while another inventory request is pending', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (path: string) => {
+      if (path.endsWith('/incident-1')) return json(incident)
+      return new Promise<Response>(() => {})
+    }))
+    render(<Investigations alerts={[second, { ...first, incident_id: 'pending' }]}
+      selected={incident.id} mode="incidents" revision={0} change={vi.fn()} />)
+    expect(await screen.findByRole('heading', { name: incident.title })).toBeTruthy()
+    expect(screen.getByText('Loading linked incidents')).toBeTruthy()
+  })
+
+  it('refreshes after a delayed create without changing the newer route or clearing its draft', async () => {
+    let complete = (_response: Response) => {}
+    const pending = new Promise<Response>(resolve => { complete = resolve })
+    let alertLoads = 0
+    let finishRefresh = (_response: Response) => {}
+    const pendingRefresh = new Promise<Response>(resolve => { finishRefresh = resolve })
+    const created = { ...incident, id: 'incident-2', title: 'Newly persisted incident', updated_at: '2026-11-21T13:00:00Z' }
+    vi.stubGlobal('fetch', vi.fn(async (path: string, options: RequestInit) => {
+      if (path.includes('/alerts?')) return ++alertLoads === 1 ? json([first, second]) : pendingRefresh
+      if (path === '/api/incidents' && options.method === 'POST') return pending
+      if (path.endsWith('/incident-1')) return json(incident)
+      if (path.endsWith('/incident-2')) return json(created)
+      return json({ status: 'ok', model_version: 'model-1' })
+    }))
+    window.location.hash = '#incidents/new/' + first.id
+    render(<App />)
+    fireEvent.change(await screen.findByLabelText('Title'), { target: { value: 'Pending incident' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create incident' }))
+    window.location.hash = '#notes'
+    fireEvent.change(await screen.findByLabelText('Investigation note'), { target: { value: 'Unsaved draft' } })
+    complete(json(created, 201))
+    await waitFor(() => expect(alertLoads).toBe(2))
+    expect(window.location.hash).toBe('#notes')
+    expect(screen.getByDisplayValue('Unsaved draft')).toBeTruthy()
+    finishRefresh(json([{ ...first, incident_id: created.id }, second]))
+    expect(await screen.findByRole('link', { name: /Newly persisted incident/ })).toBeTruthy()
+    expect(screen.getByDisplayValue('Unsaved draft')).toBeTruthy()
+  })
 })
 
 describe('request helpers', () => {

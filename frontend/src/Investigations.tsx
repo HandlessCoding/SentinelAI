@@ -1,5 +1,5 @@
 import { ClipboardList, FileSearch, MessageSquarePlus, Plus } from 'lucide-react'
-import { useCallback, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { api, incidentIds, type Alert, type Incident, type IncidentStatus } from './api'
 import { dateTime, message, percentage, shortId, State, Status, statuses, useResource } from './shared'
 
@@ -13,6 +13,11 @@ function IncidentForm({ unassigned, initialAlert, incident, change }: {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const mounted = useRef(false)
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
 
   async function save(event: FormEvent) {
     event.preventDefault()
@@ -21,22 +26,23 @@ function IncidentForm({ unassigned, initialAlert, incident, change }: {
       return
     }
     const details = { title: title.trim(), description: description.trim() || null }
+    const routeAtSubmit = window.location.hash
     setBusy(true)
     setSaved(false)
     setError('')
     try {
       if (incident) {
         await api.updateIncident(incident.id, { ...details, status })
-        setSaved(true)
+        if (mounted.current) setSaved(true)
       } else {
         const result = await api.createIncident({ ...details, alert_ids: selected })
-        window.location.hash = 'incidents/' + result.id
+        if (mounted.current && window.location.hash === routeAtSubmit) window.location.hash = 'incidents/' + result.id
       }
       change()
     } catch (error) {
-      setError(message(error))
+      if (mounted.current) setError(message(error))
     } finally {
-      setBusy(false)
+      if (mounted.current) setBusy(false)
     }
   }
 
@@ -79,7 +85,7 @@ function NotePanel({ incident, change }: { incident: Incident; change: () => voi
     setError('')
     try {
       await api.addNote(incident.id, { author: author.trim(), text: text.trim() })
-      setText('')
+      setText(current => current === text ? '' : current)
       change()
     } catch (error) {
       setError(message(error))
@@ -106,31 +112,52 @@ export function Investigations({ alerts, selected, initialAlert, mode, revision,
   alerts: Alert[]; selected?: string; initialAlert?: string; mode: 'incidents' | 'notes'; revision: number; change: () => void
 }) {
   const keys = incidentIds(alerts).join(',')
+  const [listRetries, setListRetries] = useState(0)
+  const [detailRetries, setDetailRetries] = useState(0)
+  const [defaultIncidentId, setDefaultIncidentId] = useState<string>()
   const resources = useResource(useCallback(async (signal: AbortSignal) => {
-    const ids = new Set(keys ? keys.split(',') : [])
-    if (selected && selected !== 'new') ids.add(selected)
-    const incidents = await Promise.all([...ids].map(id => api.incident(id, signal)))
-    return incidents.sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-  }, [keys, selected, revision]))
-  const incidents = resources.value ?? []
-  const incident = selected === 'new' ? undefined : selected ? incidents.find(item => item.id === selected) : incidents[0]
+    const ids = keys ? keys.split(',') : []
+    const results = await Promise.allSettled(ids.map(id => api.incident(id, signal)))
+    const incidents: Incident[] = []
+    const errors = new Map<string, string>()
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') incidents.push(result.value)
+      else errors.set(ids[index], message(result.reason))
+    })
+    return { incidents: incidents.sort((a, b) => b.updated_at.localeCompare(a.updated_at)), errors }
+  }, [keys]), undefined, revision + listRetries)
+  const firstIncident = resources.value?.incidents[0]
+  useEffect(() => {
+    if (!selected && !defaultIncidentId && firstIncident) setDefaultIncidentId(firstIncident.id)
+  }, [selected, defaultIncidentId, firstIncident])
+  const currentId = selected ?? defaultIncidentId
+  const directId = currentId === 'new' ? undefined : currentId
+  const loadDetail = useCallback((signal: AbortSignal) => api.incident(directId!, signal), [directId])
+  const detail = useResource(directId ? loadDetail : null, undefined, revision + detailRetries)
+  const incidents = resources.value?.incidents ?? []
+  const incident = directId ? detail.value ?? incidents.find(item => item.id === directId)
+    : currentId === 'new' ? undefined : firstIncident
+  const detailError = detail.error
+  const detailLoading = directId ? detail.loading : resources.loading
   const unassigned = alerts.filter(alert => alert.incident_id === null)
 
   return <div className="investigation-layout">
     <section className="panel case-list">
-      <div className="panel-heading"><div><h2>Investigations</h2><p>{resources.value ? incidents.length + ' linked incidents' : 'Linked to alerts'}</p></div></div>
+      <div className="panel-heading"><div><h2>Linked incidents</h2><p>{resources.value ? incidents.length + ' linked incidents' : 'Linked to alerts'}</p></div></div>
       {mode === 'incidents' && <div className="case-action"><a className="button secondary" href="#incidents/new"><Plus size={17} />New incident</a></div>}
-      {resources.loading && <State kind="loading" title="Loading investigations" />}
-      {resources.error && <State kind="error" title="Could not load investigations" detail={resources.error} />}
+      {resources.loading && <State kind="loading" title="Loading linked incidents" />}
+      {(resources.value?.errors.size ?? 0) > 0 && <State kind="error" title="Some incidents could not be loaded">
+        <button className="button secondary" onClick={() => setListRetries(value => value + 1)}>Retry incident list</button>
+      </State>}
       {resources.value && (incidents.length ? <ul className="case-items">{incidents.map(item => <li key={item.id}>
         <a href={'#' + mode + '/' + item.id} aria-current={incident?.id === item.id ? 'true' : undefined}>
           <FileSearch size={19} /><span><strong>{item.title}</strong><small>#{shortId(item.id)}</small><Status status={item.status} /></span>
         </a>
-      </li>)}</ul> : <State title="No incidents yet" detail="Open an investigation from an unassigned alert." />)}
+      </li>)}</ul> : !resources.value.errors.size && <State title="No incidents yet" detail="Create an incident from an unassigned alert." />)}
     </section>
     <section className="panel">
       <div className="panel-heading">
-        <div><h2>{selected === 'new' ? 'New investigation' : incident?.title ?? (mode === 'notes' ? 'Investigation notes' : 'Incident details')}</h2>
+        <div><h2>{selected === 'new' ? 'New incident' : incident?.title ?? (mode === 'notes' ? 'Investigation notes' : 'Incident details')}</h2>
           {incident && <p>#{shortId(incident.id)} · Updated {dateTime(incident.updated_at)}</p>}</div>
         {incident && <Status status={incident.status} />}
       </div>
@@ -144,8 +171,11 @@ export function Investigations({ alerts, selected, initialAlert, mode, revision,
               <a className="button secondary" href={'#notes/' + incident.id}>View notes</a></div>
           </div>
         </>)}
-      {selected !== 'new' && resources.loading && <State kind="loading" title="Loading incident details" />}
-      {selected !== 'new' && resources.value && !incident && <State title="Select an investigation" detail="Linked investigations appear here after you open a case." />}
+      {selected !== 'new' && detailError && <State kind="error" title="Could not load incident" detail={detailError}>
+        <button className="button secondary" onClick={() => setDetailRetries(value => value + 1)}>Retry incident</button>
+      </State>}
+      {selected !== 'new' && detailLoading && <State kind="loading" title="Loading incident details" />}
+      {!currentId && resources.value && !incident && <State title="Select an incident" detail="Linked incidents appear after an alert is assigned." />}
     </section>
   </div>
 }

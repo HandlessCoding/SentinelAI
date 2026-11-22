@@ -20,6 +20,9 @@ Use separate development and test databases owned by the local application
 role. Keep the password in the local configuration. The backend builds the
 connection URL from its separate components, including when the password
 contains URL punctuation.
+Use `127.0.0.1`, `::1`, or `localhost`. Every resolution of `localhost`
+must be loopback. The API, worker, and Alembic pin the validated numeric
+addresses when connecting, including when libpq has inherited defaults.
 
 For this local setup, set `listen_addresses = '127.0.0.1,::1'` in the
 active PostgreSQL configuration and restart the Windows service if the
@@ -183,8 +186,10 @@ signals unsupported retention history and blocks ingestion. Start a new
 source with all unprocessed data present. An archive removed before any
 checkpoint or retained-file evidence
 exists cannot be inferred from the active filename alone. Copy-truncate and
-multiple outstanding rotations are outside the contract. A changed
-checkpointed prefix or a shortened file blocks processing. Downgrading to
+multiple outstanding rotations are outside the contract. A shortened file
+or a change in the last 256 bytes before the checkpoint blocks processing.
+Keep log generations immutable outside normal append and rename operations.
+The checkpoint anchor checks that bounded region. Downgrading to
 revision 0002 removes continuous source records and flows. Offline captures
 are retained.
 

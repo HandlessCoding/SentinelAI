@@ -55,6 +55,30 @@ class ZeekTrafficTests(PostgreSQLSchemaTestCase):
         with Session(self.engine) as db:
             return import_capture(db, root or self.root, capture_id)
 
+    def test_import_uses_the_receipt_bytes_that_were_verified(self):
+        spec = stand_in_capture(self.root)
+        receipt = (self.root / spec["zeek_receipt"]).resolve()
+        alternate = self.root / "changed-receipt.json"
+        write_new_object(alternate, {**read_object(receipt), "zeek_version": "unverified replacement"})
+        original_open = Path.open
+        receipt_reads = 0
+
+        def open_receipt(path, *args, **kwargs):
+            nonlocal receipt_reads
+            if path == receipt:
+                receipt_reads += 1
+                if receipt_reads > 1:
+                    path = alternate
+            return original_open(path, *args, **kwargs)
+
+        with patch.object(Path, "open", new=open_receipt):
+            self.ingest(spec["capture_id"])
+        with self.make_client(prediction=Mock()) as client:
+            flow = client.get("/traffic/flows").json()["flows"][0]
+            detail = client.get("/traffic/flows/" + flow["id"]).json()
+            self.assertEqual(detail["capture"]["zeek_version"], "test fixture")
+        self.assertEqual(receipt_reads, 1)
+
     def test_import_filters_and_details_keep_findings_separate_from_ground_truth(self):
         spec = stand_in_capture(self.root)
         capture_id = spec["capture_id"]

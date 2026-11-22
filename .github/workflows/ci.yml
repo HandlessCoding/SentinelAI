@@ -42,7 +42,12 @@ jobs:
         run: |
           python -m pip install pip==26.3
           python -m pip install --only-binary=:all: -r ml/requirements-baseline.txt -r backend/requirements.txt
+          python -m pip install --only-binary=:all: -r requirements-dev.txt
           python -m pip check
+      - name: Check Python lint and adopted formatting
+        run: |
+          python -m ruff check backend migrations ml tests
+          python -m ruff format --check backend/database.py tests/test_database.py
       - name: Test Python and database migrations
         run: python -B -m unittest discover -s tests -v
         env:
@@ -64,6 +69,8 @@ jobs:
           node-version: "22.23.5"
       - name: Install lockfile dependencies
         run: npm ci
+      - name: Check adopted frontend formatting
+        run: npm run format:check
       - name: Test frontend
         run: npm test
       - name: Check TypeScript and build

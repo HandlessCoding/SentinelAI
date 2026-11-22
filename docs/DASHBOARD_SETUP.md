@@ -43,14 +43,19 @@ credentials are handled by FastAPI.
   Recent activity, protocol counts, source health, and the first connection
   page refresh every five seconds in live view. **Next** and **Previous** use
   the same fixed set of flows while you browse. Select **Resume live** or
-  apply filters to start a new view. Filter by protocol, capture ID, rule finding,
-  or source, and choose **Recently ingested** to follow replay or sensor arrivals.
-  Open a row for endpoints, timing, counters, review label, and rule and source
-  details. The dashboard identifies recorded replay and connected sensor inputs.
+  apply filters to start a new view. Filter by protocol, capture or ingestion
+  source ID, rule finding, or input kind. Choose **Recently ingested** to follow
+  replay or sensor arrivals.
+  Open a row for endpoints, timing, counters, reviewed ground truth, and
+  rule and source details. The dashboard identifies recorded replay and
+  connected sensor inputs.
+  A recorded environment ID is capture provenance. The site identifies the
+  authorized deployment scope, and the observation point identifies where
+  the sensor saw the traffic.
   [Offline import](DATABASE_SETUP.md#import-reviewed-zeek-flows-offline) ·
   [Continuous replay and worker setup](DATABASE_SETUP.md#run-continuous-zeek-ingestion)
-- **Incidents** discovers investigations through alert links. Select
-  **New incident** to give an investigation a title and link unassigned
+- **Incidents** discovers incident records through alert links. Select
+  **New incident** to enter a title and link unassigned
   alerts. Select an existing incident to edit its title, description,
   or status.
 - **Analyst Notes** displays the selected incident's notes and accepts an
@@ -99,19 +104,22 @@ The upload accepts one comma-separated UTF-8 file with a header, up to
 **2 MiB and 1,000 records**. Column order is flexible. All 42 model features
 are required. The server ignores optional `id`, `label`, and `attack_cat`
 columns, validates each record using the inference schema, and rejects
-the upload before scoring if its CSV, columns, or values are invalid.
+invalid inputs or a record too large to fit in a 2 MiB JSON request.
 See the [prediction contract](MODEL_PACKAGING.md#prediction-contract).
 
 `POST /csv/preview` takes the CSV as a raw `text/csv` request body.
 It returns validated predictors and the scoring batch limit (currently
 100). The preview step performs validation without fitting or scoring a
-model. The dashboard calls `/predict` for scores and `/analyze` only when
-the user chooses to save. Each save request is transactional for its batch.
-If a later batch fails, successful batches remain saved and the upload can
-be retried. Retry keys derive from the ordered predictor records and batch
-position. Re-uploading the same records, even after a reload, reuses the
-existing receipts. Changing predictor values or record order creates a
-different submission.
+model. The dashboard uses one plan for scoring and saving, limited by row
+count and the UTF-8 size of the encoded JSON body. It splits only oversized
+row windows. Batches that fit keep their previous keys, and split parts have
+stable keys. Before saving a split window, the dashboard sends the original
+CSV to `POST /csv/receipts` to recover matching receipts saved before the JSON
+limit. This lookup checks the previous request digest and makes no writes.
+`/analyze` commits each requested batch independently. After a
+failed request, retry to obtain the receipt for a batch that already committed
+and continue saving the remaining records. Re-uploading the same predictors
+in the same order uses the same keys after a reload.
 
 ## Build and test
 

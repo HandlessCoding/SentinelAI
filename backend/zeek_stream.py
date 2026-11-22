@@ -23,7 +23,7 @@ from backend.database import DatabaseConfigurationError, get_engine
 from backend.models import ZeekCapture, ZeekFlow, ZeekStream
 from backend.zeek_ingest import MAX_ARTIFACT_BYTES, MAX_ROWS, flow_values
 from ml.lab_capture import capture_rows
-from ml.lab_registry import identifier, lab_path, load_verified, read_object
+from ml.lab_registry import identifier, lab_path, load_verified_capture
 from ml.lab_zeek import parse_flow
 
 
@@ -74,14 +74,13 @@ def local_path(path):
 
 def replay_source(source_id, path, root, capture_id):
     """Verify the original recording bytes and bind labels to normalized line bytes."""
-    manifest, windows = load_verified(root, capture_id, max_artifact_bytes=MAX_ARTIFACT_BYTES)
+    manifest, windows, receipt = load_verified_capture(root, capture_id, max_artifact_bytes=MAX_ARTIFACT_BYTES)
     spec, hashes = manifest["capture"], manifest["sha256"]
     if spec["source"] == "synthetic":
         raise ValueError("replay requires an authorized recording")
     original = lab_path(root, spec["conn_log"])
     if path == original or (path.exists() and path.samefile(original)):
         raise ValueError("use a disposable replay log")
-    receipt = read_object(lab_path(root, spec["zeek_receipt"]))
     labels, checksum = {}, sha256()
     rows = capture_rows(root, manifest, windows, max_log_bytes=MAX_ARTIFACT_BYTES)
     with original.open("rb") as stream:

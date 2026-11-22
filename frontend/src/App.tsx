@@ -13,7 +13,7 @@ import { Traffic } from './Traffic'
 const pages = {
   overview: { label: 'Overview', icon: LayoutDashboard, title: 'Security overview', detail: 'Track model detections and the investigations they lead to.' },
   alerts: { label: 'Alerts', icon: ShieldAlert, title: 'Alerts', detail: 'Review and triage suspected attacks from saved analyses.' },
-  traffic: { label: 'Network Traffic', icon: Network, title: 'Network traffic', detail: 'Inspect Zeek flows, source health, reviewed labels, and rule findings.' },
+  traffic: { label: 'Network Traffic', icon: Network, title: 'Network traffic', detail: 'Inspect Zeek flows, source health, reviewed ground truth, and rule findings.' },
   incidents: { label: 'Incidents', icon: FileSearch, title: 'Incidents', detail: 'Open an investigation, link alerts, and update its status.' },
   notes: { label: 'Analyst Notes', icon: NotebookPen, title: 'Analyst notes', detail: 'Read and add notes within an investigation.' },
   analyze: { label: 'Analyze', icon: ScanLine, title: 'Analyze records', detail: 'Score prepared network records with the local Random Forest model.' },
@@ -54,7 +54,7 @@ export default function App() {
   }, [closeMenu])
 
   useEffect(() => {
-    if (page !== previousPage.current && !(page === 'alerts' && selected)) main.current?.focus()
+    if (page !== previousPage.current && !((page === 'alerts' || page === 'traffic') && selected)) main.current?.focus()
     previousPage.current = page
   }, [page, selected])
 
@@ -115,8 +115,7 @@ export default function App() {
   }, [revision])
 
   const model = useResource(useCallback((signal: AbortSignal) => api.model(signal), [revision]))
-  const loadAlerts = useCallback((signal: AbortSignal) => api.alerts(signal), [revision])
-  const alerts = useResource(page === 'traffic' ? null : loadAlerts)
+  const alerts = useResource(page === 'traffic' ? null : api.alerts, undefined, revision)
   const current = pages[page]
 
   return <div className="shell">

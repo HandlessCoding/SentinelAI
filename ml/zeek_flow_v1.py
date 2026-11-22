@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from ml.lab_capture import capture_rows, same_lineage
-from ml.lab_registry import lab_path, load_verified, read_object
+from ml.lab_registry import load_verified_capture
 from ml.lab_zeek import CONNECTION_STATES, CORE_FIELDS
 
 
@@ -100,7 +100,7 @@ def audit(captures):
     all_vectors, capture_support = Counter(), Counter()
     reviewed = {"benign": set(), "attack": set()}
     for root, capture_id in sorted(captures, key=lambda item: item[1]):
-        manifest, windows = load_verified(root, capture_id, max_artifact_bytes=MAX_ARTIFACT_BYTES)
+        manifest, windows, receipt = load_verified_capture(root, capture_id, max_artifact_bytes=MAX_ARTIFACT_BYTES)
         spec, hashes = manifest["capture"], manifest["sha256"]
         if spec["source"] == "synthetic":
             raise ValueError("synthetic captures are excluded from the real contract audit")
@@ -108,7 +108,6 @@ def audit(captures):
             raise ValueError("duplicate PCAP or Zeek log")
         seen_pcaps.add(hashes["pcap"])
         seen_logs.add(hashes["conn_log"])
-        receipt = read_object(lab_path(root, spec["zeek_receipt"]))
         if receipt["zeek_version"].split()[-1:] != [ZEEK_VERSION]:
             raise ValueError(f"expected a Zeek {ZEEK_VERSION} receipt for the contract audit")
         manifests.append(manifest)

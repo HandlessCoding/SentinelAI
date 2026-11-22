@@ -11,6 +11,7 @@
 | [Dashboard](DASHBOARD_SETUP.md) | CSV and JSON analysis, alerts, incidents, and notes |
 | [Model packaging](MODEL_PACKAGING.md) | Build or load the trusted Level 1 artifact |
 | [Testing and access boundaries](RELIABILITY_TESTING.md) | Reproduce the local workflow and understand its security assumptions |
+| [Coding standards](CODING_STANDARDS.md) | Run the pinned development checks and plan stack changes |
 
 ## Research and project material
 

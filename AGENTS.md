@@ -11,6 +11,7 @@
 - For significant designs, explain requirements, alternatives, tradeoffs, risks, and acceptance criteria. Challenge assumptions and distinguish observed behavior, agreed plans, and open decisions.
 - Preserve supported behavior and data compatibility. Consider invalid input, partial failures, retries, and concurrency where they affect correctness.
 - Add focused automated tests for new behavior and regressions. Run relevant tests, type checks, builds, and security checks. Report what ran, the results, and any skipped or unverified behavior.
+- Follow the [coding standards](docs/CODING_STANDARDS.md) and keep formatting changes confined to the work at hand. When the technology stack changes, update its documented standards, pinned tools, CI, and review requirements together. For future Rust components, require rustfmt, Clippy, Cargo tests, and dependency and security checks.
 
 ## Major milestone workflow
 
