@@ -22,7 +22,7 @@ from ml.inference import read_prediction_csv
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REVISION = "0001_alert_investigations"
+REVISION = "0002_zeek_traffic"
 
 
 class PostgreSQLSchemaTestCase(unittest.TestCase):
@@ -75,12 +75,19 @@ class PostgreSQLSchemaTestCase(unittest.TestCase):
 
 class PostgreSQLInvestigationsTests(PostgreSQLSchemaTestCase):
     def test_migration_up_down_and_orm_schema_match(self):
-        expected = {"prediction_batches", "alerts", "incidents", "analyst_notes", "alembic_version"}
+        existing = {"prediction_batches", "alerts", "incidents", "analyst_notes", "alembic_version"}
+        expected = existing | {"zeek_captures", "zeek_flows"}
         self.assertEqual(set(inspect(self.engine).get_table_names()), expected)
         with self.engine.connect() as connection:
             self.assertEqual(connection.exec_driver_sql("SELECT version_num FROM alembic_version").scalar_one(),
                              REVISION)
         self.migrate(command.check)
+        self.migrate(command.downgrade, "0001_alert_investigations")
+        self.assertEqual(set(inspect(self.engine).get_table_names()), existing)
+        with Session(self.engine) as db, db.begin():
+            db.add(Incident(title="Existing Level 1 investigation"))
+        self.migrate(command.upgrade, "head")
+        self.assertEqual(self.count(Incident), 1)
         self.migrate(command.downgrade, "base")
         self.assertEqual(set(inspect(self.engine).get_table_names()), {"alembic_version"})
         self.migrate(command.upgrade, "head")

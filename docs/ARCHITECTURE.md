@@ -86,6 +86,15 @@ Saving deliberately calls `POST /analyze` with the prepared records. The API obt
 
 The database schema stores the metadata above and the analyst's investigation content. The dashboard's uploaded CSV and prepared feature vectors are transient inputs. An unattached alert is `unreviewed`. An attached alert reflects its incident's `open`, `investigating`, or `resolved` status. [SQLAlchemy models](../backend/models.py), [Initial migration](../migrations/versions/0001_alert_investigations.py), [Database setup](DATABASE_SETUP.md)
 
+## Offline Zeek traffic
+
+The local importer verifies one capture and its Zeek log through the lab
+registry, then commits `zeek_captures` and `zeek_flows` in one transaction.
+Read-only `/traffic` routes feed the dashboard's Network Traffic page. The
+flow record stores reviewed ground truth and an optional versioned rule code.
+Level 1 predictions and analyst investigations retain their separate storage.
+[Capture import and read API](DATABASE_SETUP.md#import-reviewed-zeek-flows-offline)
+
 ## Runtime behavior
 
 The API validates JSON media type, encoding, request size, record count, and predictor values. Server-side limits also apply to direct API clients. A database outage makes alert and investigation operations return a generic `503`. CSV preview, prediction, and API health remain available with the model loaded. `/health` reports API availability. If the model package is missing or fails validation, API startup fails. [API startup and errors](../backend/main.py), [JSON request limits](../backend/request_limits.py), [Reliability testing](RELIABILITY_TESTING.md)

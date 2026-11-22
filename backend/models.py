@@ -1,13 +1,13 @@
 """Relational records for prediction batches and analyst investigations."""
 
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
-    CheckConstraint, DateTime, Double, ForeignKey, Index, String, Text,
+    BigInteger, CheckConstraint, DateTime, Double, ForeignKey, Index, String, Text,
     UniqueConstraint, func,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -70,3 +70,67 @@ class AnalystNote(Base):
     author: Mapped[str] = mapped_column(String(80))
     text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ZeekCapture(Base):
+    __tablename__ = "zeek_captures"
+    __table_args__ = (
+        UniqueConstraint("pcap_sha256", name="uq_zeek_captures_pcap_sha256"),
+        UniqueConstraint("conn_sha256", name="uq_zeek_captures_conn_sha256"),
+        CheckConstraint("flow_count BETWEEN 1 AND 10000", name="ck_zeek_captures_flow_count"),
+        CheckConstraint("source IN ('authorized_lab', 'authorized_archive')", name="ck_zeek_captures_source"),
+    )
+
+    capture_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(64))
+    environment_id: Mapped[str] = mapped_column(String(64))
+    observation_point: Mapped[str] = mapped_column(String(64))
+    source: Mapped[str] = mapped_column(String(24))
+    zeek_version: Mapped[str] = mapped_column(String(128))
+    pcap_sha256: Mapped[str] = mapped_column(String(64))
+    conn_sha256: Mapped[str] = mapped_column(String(64))
+    manifest_sha256: Mapped[str] = mapped_column(String(64))
+    flow_count: Mapped[int]
+    imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ZeekFlow(Base):
+    __tablename__ = "zeek_flows"
+    __table_args__ = (
+        UniqueConstraint("capture_id", "source_row", name="uq_zeek_flows_source_row"),
+        CheckConstraint("source_row > 0 AND timestamp_ns >= 0", name="ck_zeek_flows_provenance"),
+        CheckConstraint("ground_truth IN ('benign', 'attack', 'unknown')", name="ck_zeek_flows_ground_truth"),
+        Index("ix_zeek_flows_order", "timestamp_ns", "id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    capture_id: Mapped[str] = mapped_column(ForeignKey("zeek_captures.capture_id"))
+    source_row: Mapped[int]
+    timestamp_ns: Mapped[int] = mapped_column(BigInteger)
+    proto: Mapped[str] = mapped_column(String(24))
+    conn_state: Mapped[str | None] = mapped_column(String(24))
+    service: Mapped[str | None] = mapped_column(String(1024))
+    history: Mapped[str | None] = mapped_column(String(1024))
+    orig_host: Mapped[str | None] = mapped_column(String(45))
+    resp_host: Mapped[str | None] = mapped_column(String(45))
+    orig_port: Mapped[int | None]
+    resp_port: Mapped[int | None]
+    duration_ns: Mapped[int | None] = mapped_column(BigInteger)
+    orig_pkts: Mapped[int | None] = mapped_column(BigInteger)
+    resp_pkts: Mapped[int | None] = mapped_column(BigInteger)
+    orig_ip_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    resp_ip_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    orig_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    resp_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    missed_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    ground_truth: Mapped[str] = mapped_column(String(8))
+    label_category: Mapped[str | None] = mapped_column(String(64))
+    label_reason: Mapped[str] = mapped_column(String(40))
+    rule_code: Mapped[str | None] = mapped_column(String(32))
+    capture: Mapped[ZeekCapture] = relationship()
+
+    @property
+    def observed_at(self):
+        seconds, nanos = divmod(self.timestamp_ns, 10**9)
+        timestamp = datetime(1970, 1, 1, tzinfo=UTC) + timedelta(seconds=seconds)
+        return f"{timestamp:%Y-%m-%dT%H:%M:%S}.{nanos:09d}Z"

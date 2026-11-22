@@ -15,6 +15,7 @@ from backend.database import DatabaseConfigurationError
 from backend.investigations import router as investigation_router
 from backend.routes import router
 from backend.schemas import MAX_BATCH_SIZE
+from backend.traffic import router as traffic_router
 from ml.inference import DEFAULT_ARTIFACT_DIR, load_model
 
 
@@ -34,7 +35,7 @@ def create_app(model_loader=load_local_model):
 
     app = FastAPI(
         title="SentinelAI",
-        description="Local Random Forest inference for prepared UNSW-NB15 predictor records.",
+        description="Local UNSW-NB15 inference and offline Zeek traffic triage.",
         version="0.1.0",
         lifespan=lifespan,
     )
@@ -64,6 +65,7 @@ def create_app(model_loader=load_local_model):
     app.include_router(router)
     app.include_router(investigation_router)
     app.include_router(csv_router)
+    app.include_router(traffic_router)
     return app
 
 

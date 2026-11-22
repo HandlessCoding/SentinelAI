@@ -142,12 +142,14 @@ def parse_flow(row):
     return Flow(timestamp, features, issues, endpoints)
 
 
-def read_flows(path, expected_hash):
+def read_flows(path, expected_hash, *, max_bytes=None):
     """Yield normalized rows while checking the exact file bytes and identity."""
     result = sha256()
     with path.open("rb") as stream:
         before = file_identity(fstat(stream.fileno()))
         for line_number, line in enumerate(iter(lambda: stream.readline(MAX_LINE + 1), b""), 1):
+            if max_bytes is not None and stream.tell() > max_bytes:
+                raise ValueError("Zeek log exceeds the import size limit")
             if len(line) > MAX_LINE:
                 raise ValueError(f"Zeek log line {line_number} exceeds 1 MiB")
             result.update(line)

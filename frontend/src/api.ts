@@ -61,6 +61,49 @@ export interface PreparedCsv {
   batch_size: number
 }
 
+export type ZeekProtocol = 'tcp' | 'udp' | 'icmp' | 'unknown_transport'
+
+export interface TrafficFlow {
+  id: string
+  capture_id: string
+  source_row: number
+  observed_at: string
+  proto: ZeekProtocol
+  conn_state: string | null
+  service: string | null
+  orig_host: string | null
+  resp_host: string | null
+  orig_port: number | null
+  resp_port: number | null
+  ground_truth: 'benign' | 'attack' | 'unknown'
+  finding: { source: 'rule'; code: string; explanation: string } | null
+}
+
+export interface TrafficDetail extends TrafficFlow {
+  history: string | null
+  duration_ns: string | null
+  orig_pkts: string | null
+  resp_pkts: string | null
+  orig_ip_bytes: string | null
+  resp_ip_bytes: string | null
+  orig_bytes: string | null
+  resp_bytes: string | null
+  missed_bytes: string | null
+  label_category: string | null
+  label_reason: string
+  capture: {
+    session_id: string; environment_id: string; observation_point: string
+    source: 'authorized_lab' | 'authorized_archive'; zeek_version: string; imported_at: string
+    pcap_sha256: string; conn_sha256: string; manifest_sha256: string
+  }
+}
+
+export interface TrafficSummary {
+  total_flows: number
+  finding_count: number
+  protocols: { protocol: ZeekProtocol; count: number }[]
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers)
   if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
@@ -77,6 +120,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   health: (signal?: AbortSignal) => request<{ status: 'ok' }>('/health', { signal }),
   model: (signal?: AbortSignal) => request<ModelInfo>('/model/info', { signal }),
+  trafficSummary: (signal?: AbortSignal) => request<TrafficSummary>('/traffic/summary', { signal }),
+  trafficFlows: (query: URLSearchParams, signal?: AbortSignal) =>
+    request<{ flows: TrafficFlow[]; next_offset: number | null }>('/traffic/flows?' + query, { signal }),
+  trafficFlow: (id: string, signal?: AbortSignal) =>
+    request<TrafficDetail>('/traffic/flows/' + encodeURIComponent(id), { signal }),
   async alerts(signal?: AbortSignal) {
     const alerts = new Map<string, Alert>()
     const limit = 100
