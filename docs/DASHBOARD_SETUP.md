@@ -41,7 +41,9 @@ credentials are handled by FastAPI.
   suspected attack, and the detail view shows the model probability.
 - **Network Traffic** displays offline imports and incoming Zeek flows.
   Recent activity, protocol counts, source health, and the first connection
-  page refresh every five seconds. Filter by protocol, capture ID, rule finding,
+  page refresh every five seconds in live view. **Next** and **Previous** use
+  the same fixed set of flows while you browse. Select **Resume live** or
+  apply filters to start a new view. Filter by protocol, capture ID, rule finding,
   or source, and choose **Recently ingested** to follow replay or sensor arrivals.
   Open a row for endpoints, timing, counters, review label, and rule and source
   details. The dashboard identifies recorded replay and connected sensor inputs.

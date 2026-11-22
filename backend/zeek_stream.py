@@ -12,6 +12,7 @@ from pathlib import Path
 import stat
 import sys
 from threading import Event
+from typing import BinaryIO, NamedTuple
 
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert
@@ -72,7 +73,7 @@ def local_path(path):
 
 
 def replay_source(source_id, path, root, capture_id):
-    """Bind labels to exact verified Zeek lines from a registered recording."""
+    """Verify the original recording bytes and bind labels to normalized line bytes."""
     manifest, windows = load_verified(root, capture_id, max_artifact_bytes=MAX_ARTIFACT_BYTES)
     spec, hashes = manifest["capture"], manifest["sha256"]
     if spec["source"] == "synthetic":
@@ -97,8 +98,34 @@ def replay_source(source_id, path, root, capture_id):
                   receipt["zeek_version"], capture_id, hashes["conn_log"], fingerprint(manifest), labels)
 
 
-def open_log(path):
-    if not stat.S_ISREG(path.lstat().st_mode):
+class LogGeneration(NamedTuple):
+    stream: BinaryIO
+    identity: str
+    size: int
+
+
+def active_identity(path):
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return None
+    if stat.S_ISREG(info.st_mode) and info.st_ino:
+        return f"{info.st_dev:x}:{info.st_ino:x}"
+    return None
+
+
+def has_unsupported_archives(path):
+    prefix = path.name + "."
+    suffixes = (entry.name[len(prefix):] for entry in path.parent.iterdir() if entry.name.startswith(prefix))
+    return any(suffix.isascii() and suffix.isdecimal() and suffix != "1" for suffix in suffixes)
+
+
+def open_log(path, files):
+    try:
+        mode = path.lstat().st_mode
+    except FileNotFoundError:
+        return None
+    if not stat.S_ISREG(mode):
         raise OSError("expected a regular local log")
     descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_BINARY", 0)
                          | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0))
@@ -106,7 +133,8 @@ def open_log(path):
         info = os.fstat(descriptor)
         if not stat.S_ISREG(info.st_mode) or not info.st_ino:
             raise OSError("expected an identifiable regular file")
-        return os.fdopen(descriptor, "rb"), f"{info.st_dev:x}:{info.st_ino:x}", info.st_size
+        stream = files.enter_context(os.fdopen(descriptor, "rb"))
+        return LogGeneration(stream, f"{info.st_dev:x}:{info.st_ino:x}", info.st_size)
     except BaseException:
         os.close(descriptor)
         raise
@@ -192,17 +220,18 @@ def stopped(checkpoint, status, error):
     return 0
 
 
-def consume(db, source, checkpoint, stream, identity, size, *, old, next_file, now):
-    lag = next_file[2] if old and next_file else 0
+def consume(db, source, checkpoint, generation, *, retired, next_file, now):
+    stream, identity, size = generation
     offset = checkpoint.byte_offset
     if size < offset or checkpoint_anchor(stream, offset) != checkpoint.anchor:
         return stopped(checkpoint, "blocked", "checkpoint_content_changed")
-    records, end, discarding = read_batch(stream, offset, size, checkpoint.discarding,
-                                         retired=old and next_file is not None)
+    records, end, discarding = read_batch(stream, offset, size, checkpoint.discarding, retired=retired)
     anchor = checkpoint_anchor(stream, end)
     available = os.fstat(stream.fileno()).st_size
     if available < end or checkpoint_anchor(stream, offset) != checkpoint.anchor:
         return stopped(checkpoint, "blocked", "checkpoint_content_changed")
+    if checkpoint.last_error != "rejected_record":
+        checkpoint.last_error = None
     rows = []
     for position, raw in records:
         checkpoint.rows_seen += 1
@@ -223,10 +252,24 @@ def consume(db, source, checkpoint, stream, identity, size, *, old, next_file, n
             checkpoint.last_ingested_at = now
     checkpoint.file_identity, checkpoint.byte_offset, checkpoint.anchor = identity, end, anchor
     checkpoint.discarding = discarding
-    if old and next_file and end == available and not discarding:
-        checkpoint.file_identity, checkpoint.byte_offset, checkpoint.anchor = next_file[1], 0, None
-    checkpoint.backlog_bytes = available - end + lag
-    checkpoint.status = "waiting" if old and next_file is None else "ready"
+    # Recheck the names close to commit. If probing fails, still commit the
+    # validated rows with their old-file checkpoint and withhold the handoff.
+    try:
+        named = active_identity(source.path)
+        if next_file is not None and named != next_file.identity:
+            next_file = None
+        lag = os.fstat(next_file.stream.fileno()).st_size if next_file else 0
+    except OSError:
+        return stopped(checkpoint, "waiting", "source_read_failed")
+    handed_off = next_file is not None and end == available and not discarding
+    if handed_off:
+        checkpoint.file_identity, checkpoint.byte_offset, checkpoint.anchor = next_file.identity, 0, None
+        checkpoint.last_drained_file = identity
+    pending = available - end + lag
+    name_changed = not retired and named != identity
+    waiting = name_changed or (retired and not handed_off)
+    checkpoint.backlog_bytes = None if name_changed or (waiting and not pending) else pending
+    checkpoint.status = "waiting" if waiting else "ready"
     checkpoint.last_success_at = now
     return end - offset
 
@@ -241,27 +284,38 @@ def ingest_batch(db, source):
         now = datetime.now(UTC)
         checkpoint.heartbeat_at = now
         try:
-            current = open_log(source.path)
-            files.enter_context(current[0])
-        except OSError:
-            current = None
-        old = checkpoint.file_identity is not None and (current is None or current[1] != checkpoint.file_identity)
-        active = current
-        if old:
-            try:
-                active = open_log(source.path.with_name(source.path.name + ".1"))
-                files.enter_context(active[0])
-            except OSError:
-                return stopped(checkpoint, "blocked" if current else "waiting",
-                               "rotated_file_missing" if current else "source_unavailable")
-            if active[1] != checkpoint.file_identity:
-                return stopped(checkpoint, "blocked", "rotated_file_identity_changed")
-        if active is None:
-            return stopped(checkpoint, "waiting", "source_unavailable")
-        try:
-            return consume(db, source, checkpoint, *active, old=old, next_file=current, now=now)
+            return consume_available(db, source, checkpoint, files, now)
         except OSError:
             return stopped(checkpoint, "waiting", "source_read_failed")
+
+
+def consume_available(db, source, checkpoint, files, now):
+    current = open_log(source.path, files)
+    known = checkpoint.file_identity
+    archive = open_log(source.path.with_name(source.path.name + ".1"), files)
+    if known is not None and current is not None and current.identity == known:
+        if archive is not None:
+            if archive.identity == known:
+                return consume(db, source, checkpoint, archive, retired=True, next_file=None, now=now)
+            if archive.identity != checkpoint.last_drained_file:
+                return stopped(checkpoint, "blocked", "retained_archive_unacknowledged")
+        return consume(db, source, checkpoint, current, retired=False, next_file=None, now=now)
+
+    if known is not None:
+        if archive is None:
+            return stopped(checkpoint, "blocked", "rotated_file_missing")
+        if archive.identity != known:
+            return stopped(checkpoint, "blocked", "rotated_file_identity_changed")
+    elif has_unsupported_archives(source.path):
+        return stopped(checkpoint, "blocked", "rotation_history_incomplete")
+
+    if archive is not None:
+        # The active name may have been renamed after we opened its descriptor.
+        successor = current if current is not None and current.identity != archive.identity else None
+        return consume(db, source, checkpoint, archive, retired=True, next_file=successor, now=now)
+    if current is None:
+        return stopped(checkpoint, "waiting", "source_unavailable")
+    return consume(db, source, checkpoint, current, retired=False, next_file=None, now=now)
 
 
 def run_worker(engine, source, stop):

@@ -23,7 +23,7 @@ from support import requires_local_model
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REVISION = "0003_zeek_streams"
+REVISION = "0004_zeek_browsing"
 
 
 class PostgreSQLSchemaTestCase(unittest.TestCase):

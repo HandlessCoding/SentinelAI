@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import (
     BigInteger, Boolean, CheckConstraint, DateTime, Double, ForeignKey, Index, String, Text,
-    UniqueConstraint, func,
+    UniqueConstraint, func, text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -116,6 +116,7 @@ class ZeekFlow(Base):
     source_file: Mapped[str | None] = mapped_column(String(64))
     source_offset: Mapped[int | None] = mapped_column(BigInteger)
     ingested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    insert_xid: Mapped[str] = mapped_column(Text, server_default=text("pg_current_xact_id()::text"))
     timestamp_ns: Mapped[int] = mapped_column(BigInteger)
     proto: Mapped[str] = mapped_column(String(24))
     conn_state: Mapped[str | None] = mapped_column(String(24))
@@ -157,6 +158,7 @@ class ZeekStream(Base):
     replay_capture_id: Mapped[str | None] = mapped_column(String(64))
     replay_conn_sha256: Mapped[str | None] = mapped_column(String(64))
     file_identity: Mapped[str | None] = mapped_column(String(64))
+    last_drained_file: Mapped[str | None] = mapped_column(String(64))
     byte_offset: Mapped[int] = mapped_column(BigInteger, default=0)
     anchor: Mapped[str | None] = mapped_column(String(64))
     discarding: Mapped[bool] = mapped_column(Boolean, default=False)
