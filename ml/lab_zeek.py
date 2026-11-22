@@ -17,6 +17,9 @@ from ml.lab_registry import NANOSECOND, ZEEK_SETTINGS, digest, identifier, lab_p
 
 COUNTERS = ("orig_pkts", "resp_pkts", "orig_ip_bytes", "resp_ip_bytes", "orig_bytes", "resp_bytes", "missed_bytes")
 TEXT_FIELDS = ("proto", "conn_state", "service", "history")
+CONNECTION_STATES = frozenset((
+    "S0", "S1", "SF", "REJ", "S2", "S3", "RSTO", "RSTR", "RSTOS0", "RSTRH", "SH", "SHR", "OTH",
+))
 CORE_FIELDS = ("proto", *COUNTERS[:4])
 RICH_FIELDS = (*CORE_FIELDS, "duration_ns", "conn_state", "service", "orig_bytes", "resp_bytes", "missed_bytes", "history")
 MAX_LINE = 1024**2
