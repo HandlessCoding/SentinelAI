@@ -64,9 +64,10 @@ and duplication probes locally using the lockfile tools.
 ```
 
 JavaScript advisory results at high or critical severity fail CI. The scanner
-reports lower severities for review. Gitleaks scans checked-out commit history
-with secret values redacted and fails on findings. Prefer native GitHub secret
-scanning and push protection where available to catch credentials before they
+reports lower severities for review. Gitleaks scans checked-out commit history,
+including merge commit patches, with secret values redacted. It fails on findings
+and uses the pinned default rules independently of checkout-local ignore files.
+Prefer native GitHub secret scanning and push protection to catch credentials before they
 land. [Workflow](../.github/workflows/ci.yml) · [GitHub push protection](https://docs.github.com/en/code-security/concepts/secret-security/push-protection)
 
 Static checks identify code patterns. Use functional and integration tests for

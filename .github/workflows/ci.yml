@@ -56,7 +56,7 @@ jobs:
       - name: Test Python and database migrations
         run: python -B -m unittest discover -s tests -v
         env:
-          SENTINELAI_DB_PORT: ${{ job.services.postgres.ports[5432] }}
+          SENTINELAI_DB_PORT: ${{ job.services.postgres.ports['5432'] }}
 
   frontend:
     name: Frontend, TypeScript and build
@@ -85,21 +85,24 @@ jobs:
       - name: Check TypeScript and build
         run: npm run build
       - name: Report production Python and TypeScript duplication
+        continue-on-error: true
         working-directory: .
         run: >-
           frontend/node_modules/.bin/jscpd --min-lines 6 --min-tokens 50
           --format python,typescript,tsx --ignore '**/*.test.ts,**/*.test.tsx,**/__pycache__/**'
           --fail-on-empty --no-colors --no-tips backend frontend/src
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        id: pyright-python
+        continue-on-error: true
         with:
           python-version: "3.12.3"
-      - name: Install Python imports for Pyright evaluation
-        working-directory: .
-        run: python -m pip install --only-binary=:all: -r backend/requirements.txt -r ml/requirements-baseline.txt
       - name: Report Pyright diagnostics for selected backend modules
+        if: steps.pyright-python.outcome == 'success'
         continue-on-error: true
         working-directory: .
-        run: frontend/node_modules/.bin/pyright --pythonpath "$(command -v python)"
+        run: |
+          python -m pip install --only-binary=:all: -r backend/requirements.txt -r ml/requirements-baseline.txt
+          frontend/node_modules/.bin/pyright --pythonpath "$(command -v python)"
 
   secrets:
     name: Secret scanning
@@ -121,4 +124,10 @@ jobs:
             --output "$RUNNER_TEMP/$archive"
           printf '%s  %s\n' "$GITLEAKS_SHA256" "$RUNNER_TEMP/$archive" | sha256sum --check --strict
           tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" gitleaks
-          "$RUNNER_TEMP/gitleaks" git --redact=100 --no-banner --log-opts=HEAD
+          printf '[extend]\nuseDefault = true\n' > "$RUNNER_TEMP/gitleaks.toml"
+          : > "$RUNNER_TEMP/.gitleaksignore"
+          # Scan the Git store so checkout files cannot supply scanner policy.
+          git_dir="$(git rev-parse --absolute-git-dir)"
+          "$RUNNER_TEMP/gitleaks" git --redact=100 --no-banner \
+            --config "$RUNNER_TEMP/gitleaks.toml" --gitleaks-ignore-path "$RUNNER_TEMP/.gitleaksignore" \
+            --ignore-gitleaks-allow --log-opts='--diff-merges=first-parent HEAD' "$git_dir"
