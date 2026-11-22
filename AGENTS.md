@@ -21,8 +21,15 @@ Use the installed skills for the applicable stages of major milestones. Get expl
 2. **To Spec.** Use `to-spec` to describe scope, interfaces, risks, acceptance criteria, and required tests. Use `setup-matt-pocock-skills` to configure the issue tracker before publishing specs or tickets if the tracker setup is pending.
 3. **To Tickets.** Use `to-tickets` to split the approved spec into small, independently verifiable tasks with explicit dependencies.
 4. **Implement with TDD.** Use `implement` and `tdd` for approved tickets. Add focused automated tests and verify the results against the spec.
-5. **Code Review.** Use `code-review` to independently check the implementation against repository standards and the approved spec, including architecture, security, performance, and compatibility.
-6. **Pull Request.** When authorized, present verified changes, test results, and remaining limitations for review. Obtain explicit approval before merging.
+5. **Code Review.** Apply the human-first gate before detailed review. Use `code-review` for independent Standards and Spec reviews. Add an independent Security review for security-sensitive changes, including trust boundaries, dependency changes, and CI privileges.
+6. **Pull Request.** When authorized, use `/pr` to present verified changes, test results, and remaining limitations. Obtain explicit approval before merging. Use `/retro` after completion when the milestone warrants it. Use `/improve-codebase-architecture` periodically for report-only assessments and `/diagnosing-bugs` for difficult failures. Use focused agent contexts or isolated worktrees when they improve independent work.
+
+## Human-first review gate
+
+- Classify every substantial PR before detailed AI review and record **One-way door: YES/NO**, **Large blast radius: YES/NO**, justification, affected components, and rollback feasibility in the PR body. Treat a change as a one-way door when reverting code cannot reliably recover prior state, compatibility, or confidentiality. Treat it as large blast radius when failure can affect several critical workflows, a broad group of users or data, or the site's isolation or shared infrastructure.
+- If both are **YES**, stop detailed AI review, subsequent Codex instructions on the PR, and any merge activity. Share the PR link and full head commit SHA and wait for Faris to personally inspect that exact head and explicitly confirm completion of his manual review. If `/pr` first identifies both as **YES**, stop at that point. A changed head invalidates confirmation and the gate applies again. Recheck the head before resuming work or merging.
+- Record Faris's explicit confirmation against the full SHA through an attributable channel. AI reviews, green CI, PR checkboxes, and activity from shared accounts cannot establish personal review. This gate applies to ChatGPT, Codex, and every other AI agent. Manual-review confirmation and merge authorization are separate decisions.
+- Prefer a `main` ruleset that requires a PR and passing checks, dismisses stale approvals, and limits bypass. Require CODEOWNERS review for sensitive paths when a named, eligible reviewer is available. Pair those controls with SHA-bound personal confirmation for the two-YES gate, since GitHub review state alone cannot establish who performed the inspection. [GitHub ruleset options](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets#require-a-pull-request-before-merging)
 
 ## Security and data handling
 
@@ -31,6 +38,7 @@ Use the installed skills for the applicable stages of major milestones. Get expl
 
 ## ML evaluation
 
+- Before introducing a dataset, verify the original publisher, exact release, derivative lineage, required citations, and rights for the intended use and any redistribution. Record the evidence and unresolved permissions in the [dataset citation catalog](docs/DATASETS_AND_CITATIONS.md). Obtain authorization before any use that depends on unresolved rights.
 - Track dataset, capture, labeling, feature, model, and evaluation provenance. Check feature semantics and extraction parity before applying a model to another source. Keep unresolved labels `unknown` and account for them separately.
 - Keep related captures and device or session groups together when splitting data. Audit overlap and leakage. Fit on the training partition, select models and thresholds on designated development partitions, and freeze the pipeline and operating point before held-out evaluation.
 - Report class and group support, false-positive rates, and uncertainty or evidence limits. Qualify deployment claims with representative independent evidence. Distinguish benchmark results, supervised lab results, and operational evidence.
