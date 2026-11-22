@@ -37,7 +37,7 @@ Run these commands from the repository root in PowerShell:
 
 The commands install the pinned dependencies, migrate the development
 database, print its applied revision, and serve the API locally. The
-expected head revision is `0003_zeek_streams`. Port 8001 matches
+expected head revision is `0004_zeek_browsing`. Port 8001 matches
 the dashboard's local proxy target. Open
 [Swagger UI](http://127.0.0.1:8001/docs) to explore the routes.
 
@@ -101,15 +101,23 @@ The capture and all its flows commit together.
 | Endpoint | Behavior |
 |---|---|
 | `GET /traffic/summary` | Count imported flows, rule findings, and flows by protocol |
-| `GET /traffic/flows` | Filter by `capture_id`, `protocol`, `connection_state`, `has_finding`, or `source`. Use `order=ingested` for recently ingested continuous flows. Page with `limit` (1–100) and `offset` (0–100,000). |
+| `GET /traffic/flows` | Filter by `capture_id`, `protocol`, `connection_state`, `has_finding`, or `source`. Use `order=ingested` for recently ingested continuous flows. Use `limit` (1–100) and `pagination=cursor` for stable browsing. Existing `limit` and `offset` (0–100,000) requests retain their response format. |
 | `GET /traffic/flows/{flow_id}` | Read exact UTC timestamp, endpoints, counters, rule explanation, reviewed label, and capture provenance |
-| `GET /traffic/monitoring` | Five-minute continuous activity, protocol counts, and checkpoint health for up to 100 configured sources |
+| `GET /traffic/monitoring` | Five-minute continuous activity, protocol counts, and checkpoint health for up to 100 configured sources, including the last committed archive handoff |
 
 Timestamps retain nanosecond precision. The detail API returns counter and
 duration values as decimal strings to preserve their full precision in the
 browser. IP-level byte counts and payload byte estimates stay separate.
 Import stays a local command. Raw PCAPs and evidence files stay on D:.
 [Zeek connection fields](https://docs.zeek.org/en/v8.0.11/scripts/base/protocols/conn/main.zeek.html#type-Conn::Info)
+
+For stable browsing, request `pagination=cursor` on the first page. The API
+freezes which insert transactions are visible at that point and orders rows
+by the selected timestamp and unique flow ID. Send `next_cursor` as `cursor`
+to continue with the same filters, order, and limit. Save `page_cursor` to
+revisit that page. Start without a cursor to see new rows. Offset requests
+remain available for existing clients, but their page boundaries can shift
+as rows arrive.
 
 ## Run continuous Zeek ingestion
 
@@ -137,10 +145,13 @@ Invoke-RestMethod 'http://127.0.0.1:8001/traffic/flows?capture_id=g36-replay-g29
 
 The worker starts at byte zero and commits the file identity, byte
 offset, trailing-byte checksum, flow inserts, and health counters together.
-Restart with the same source ID and settings to resume. Replay accepts exact
-verified lines and uses their original reviewed labels. Re-appending the same
-recording under the same source ID increments its duplicate count. Connected
-sensor mode uses `--environment`, `--observation-point`, and `--zeek-version`
+Restart with the same source ID and settings to resume. Replay verifies the
+complete original log against its registered SHA-256. Each input record must
+match a verified record after stripping trailing CR and LF bytes from both.
+The reviewed label and duplicate key are based on that normalized match.
+Re-appending the same recording under the same source ID increments its
+duplicate count. Connected sensor mode uses `--environment`,
+`--observation-point`, and `--zeek-version`
 in place of the replay options. Sensor records require Zeek UIDs and stay
 unreviewed. Deduplication uses UID and first-packet time within each sensor
 source. Rule findings stay separate from analyst alerts and incidents.
@@ -152,14 +163,37 @@ outages, and exposes pending bytes, rejected and duplicate counts, last error,
 and last successful processing and ingestion times. A heartbeat older than
 15 seconds appears stale.
 
-For rotation, close and rename the old file to `conn.log.1`, create the
-new `conn.log`, and retain `.1` until the worker drains it. The same rule
-applies to other filenames. A missing or replaced previous generation blocks
-handoff until the original file is restored. A truncated or rewritten
-checkpointed prefix also blocks the worker when its length or trailing hash
-changes. Use rename rotation. Multiple unretained rotations and copy-truncate
-are outside this worker's contract. Downgrading to revision 0002 removes
-continuous source records and their flows. Offline captures are retained.
+For rotation, close and rename the old file to `conn.log.1`, then create the
+new `conn.log`. Apply the same naming rule to other filenames. The worker
+drains a retained `.1` before the active file even at first startup. Keep
+the original `.1` in place until `/traffic/monitoring` reports its exact
+file identity in `last_drained_file`. The identity is the device and inode
+in hexadecimal, separated by `:`. It uses the same format as `source_file`
+on flow details. This acknowledgement means the archive was consumed and
+the checkpoint for its successor was committed in the same transaction.
+Hold the next rotation until that acknowledgement. Move the acknowledged
+file out of the rotation slot before rotating again. A drained archive with
+no successor reports `waiting` and no backlog count once its pending bytes
+reach zero. Backlog reflects the worker's last observation. Use the archive
+identity acknowledgement to decide when to move a file.
+
+A missing or replaced checkpointed generation blocks ingestion until the
+original is restored. At initial startup, a numbered archive other than `.1`
+signals unsupported retention history and blocks ingestion. Start a new
+source with all unprocessed data present. An archive removed before any
+checkpoint or retained-file evidence
+exists cannot be inferred from the active filename alone. Copy-truncate and
+multiple outstanding rotations are outside the contract. A changed
+checkpointed prefix or a shortened file blocks processing. Downgrading to
+revision 0002 removes continuous source records and flows. Offline captures
+are retained.
+
+After upgrading from revision 0003, a retained archive beside an already
+checkpointed active log may lack an acknowledgement. The source then reports
+`retained_archive_unacknowledged`. Preserve the original, and reconcile its
+complete records against the stored flows and any recorded duplicates or
+rejections. Move it out of the rotation slot only after confirming it was
+fully accounted for. Keep the source blocked if coverage cannot be verified.
 
 ## Demonstrate the workflow
 

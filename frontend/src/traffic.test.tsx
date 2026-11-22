@@ -110,3 +110,29 @@ it('polls incoming records and presents replay health and filters', async () => 
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Apply filters' })) })
   expect(fetcher.mock.calls.some(([path]) => path.includes('source=recorded_replay&order=ingested'))).toBe(true)
 })
+
+it('opens later pages with a cursor and returns to the same first page until browsing resumes live', async () => {
+  window.location.hash = '#traffic'
+  const fetcher = vi.fn(async (path: string) => {
+    if (path === '/api/traffic/monitoring') return json(emptyMonitoring)
+    if (path === '/api/traffic/summary') return json({ total_flows: 2, finding_count: 1, protocols: [] })
+    if (path.startsWith('/api/traffic/flows?')) {
+      const cursor = new URL(path, 'http://localhost').searchParams.get('cursor')
+      if (cursor === 'second-page') return json({ flows: [{ ...flow, orig_host: '192.0.2.2' }],
+        next_offset: null, page_cursor: 'second-page', next_cursor: null })
+      return json({ flows: [flow], next_offset: null, page_cursor: 'first-page', next_cursor: 'second-page' })
+    }
+    return json({ status: 'ok' })
+  })
+  vi.stubGlobal('fetch', fetcher)
+  render(<App />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Next' }))
+  await screen.findByText('192.0.2.2:31000')
+  fireEvent.click(screen.getByRole('button', { name: 'Previous' }))
+  await screen.findByText('192.0.2.1:31000')
+  expect(fetcher.mock.calls.some(([path]) => path.includes('pagination=cursor') && path.includes('cursor=first-page'))).toBe(true)
+  const count = fetcher.mock.calls.filter(([path]) => path.includes('pagination=cursor') && !path.includes('&cursor=')).length
+  fireEvent.click(screen.getByRole('button', { name: 'Resume live' }))
+  await waitFor(() => expect(fetcher.mock.calls.filter(([path]) =>
+    path.includes('pagination=cursor') && !path.includes('&cursor=')).length).toBe(count + 1))
+})

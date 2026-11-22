@@ -149,7 +149,7 @@ export const api = {
   trafficSummary: (signal?: AbortSignal) => request<TrafficSummary>('/traffic/summary', { signal }),
   trafficMonitoring: (signal?: AbortSignal) => request<TrafficMonitoring>('/traffic/monitoring', { signal }),
   trafficFlows: (query: URLSearchParams, signal?: AbortSignal) =>
-    request<{ flows: TrafficFlow[]; next_offset: number | null }>('/traffic/flows?' + query, { signal }),
+    request<{ flows: TrafficFlow[]; page_cursor: string; next_cursor: string | null }>('/traffic/flows?' + query, { signal }),
   trafficFlow: (id: string, signal?: AbortSignal) =>
     request<TrafficDetail>('/traffic/flows/' + encodeURIComponent(id), { signal }),
   async alerts(signal?: AbortSignal) {

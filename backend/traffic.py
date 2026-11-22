@@ -1,12 +1,15 @@
 """Read Zeek flows, source health and rule findings from local PostgreSQL."""
 
+from base64 import b64decode, urlsafe_b64encode
 from datetime import UTC, datetime, timedelta
+from hashlib import sha256
+import json
 from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_serializer
-from sqlalchemy import func, select
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, computed_field, field_serializer, field_validator
+from sqlalchemy import func, select, text, tuple_
 from sqlalchemy.orm import Session, joinedload
 
 from backend.database import get_session
@@ -94,6 +97,32 @@ class FlowPage(BaseModel):
     next_offset: int | None
 
 
+class CursorFlowPage(FlowPage):
+    page_cursor: str
+    next_cursor: str | None
+
+
+class FlowCursor(BaseModel):
+    scope: str
+    snapshot: Annotated[str, Field(max_length=4096, pattern=r"^[0-9]{1,20}:[0-9]{1,20}:([0-9]{1,20}(,[0-9]{1,20})*)?$")]
+    after: tuple[Annotated[int, Field(ge=0, le=2**63 - 1)], UUID] | tuple[AwareDatetime, UUID] | None = None
+
+    @field_validator("snapshot")
+    @classmethod
+    def validate_snapshot(cls, value):
+        lower, upper, active = value.split(":")
+        lower, upper = int(lower), int(upper)
+        running = [int(item) for item in active.split(",")] if active else []
+        if not (3 <= lower <= upper < 2**64) or running != sorted(set(running)) or any(
+            not lower <= xid < upper for xid in running
+        ):
+            raise ValueError("invalid PostgreSQL snapshot")
+        return value
+
+    def encode(self):
+        return urlsafe_b64encode(self.model_dump_json().encode()).decode()
+
+
 class ProtocolCount(BaseModel):
     protocol: Protocol
     count: int
@@ -110,6 +139,7 @@ class StreamHealth(BaseModel):
     source: Literal["recorded_replay", "connected_sensor"]
     status: str
     backlog_bytes: int | None
+    last_drained_file: str | None
     rejected_rows: int
     duplicate_rows: int
     last_error: str | None
@@ -143,6 +173,7 @@ def monitoring_summary(db: Database):
             capture_id=stream.capture_id, source=stream.capture.source,
             status="stale" if stale else stream.status,
             backlog_bytes=None if stale else stream.backlog_bytes,
+            last_drained_file=stream.last_drained_file,
             rejected_rows=stream.rejected_rows, duplicate_rows=stream.duplicate_rows,
             last_error=stream.last_error, heartbeat_at=stream.heartbeat_at,
             last_success_at=stream.last_success_at, last_ingested_at=stream.last_ingested_at,
@@ -166,7 +197,7 @@ def traffic_summary(db: Database):
     )
 
 
-@router.get("/flows", response_model=FlowPage)
+@router.get("/flows", response_model=CursorFlowPage | FlowPage)
 def list_flows(
     db: Database, protocol: Protocol | None = None,
     capture_id: Annotated[str | None, Query(pattern=r"^[a-z0-9][a-z0-9_-]{0,63}$")] = None,
@@ -176,12 +207,15 @@ def list_flows(
     order: Literal["observed", "ingested"] = "observed",
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0, le=MAX_OFFSET)] = 0,
+    pagination: Literal["offset", "cursor"] = "offset",
+    cursor: Annotated[str | None, Query(min_length=1, max_length=6000)] = None,
 ):
     query = select(ZeekFlow).options(joinedload(ZeekFlow.capture))
+    order_key = ZeekFlow.timestamp_ns
     if order == "ingested":
-        query = query.where(ZeekFlow.ingested_at.is_not(None)).order_by(ZeekFlow.ingested_at.desc(), ZeekFlow.id.desc())
-    else:
-        query = query.order_by(ZeekFlow.timestamp_ns.desc(), ZeekFlow.id.desc())
+        order_key = ZeekFlow.ingested_at
+        query = query.where(order_key.is_not(None))
+    query = query.order_by(order_key.desc(), ZeekFlow.id.desc())
     if source is not None:
         query = query.where(ZeekFlow.capture.has(ZeekCapture.source == source))
     if protocol is not None:
@@ -192,9 +226,49 @@ def list_flows(
         query = query.where(ZeekFlow.conn_state == connection_state)
     if has_finding is not None:
         query = query.where(ZeekFlow.rule_code.is_not(None) if has_finding else ZeekFlow.rule_code.is_(None))
+    if pagination == "cursor":
+        if offset:
+            raise HTTPException(status_code=422, detail="Cursor pagination does not accept a nonzero offset.")
+        scope = sha256(json.dumps([order, protocol, capture_id, connection_state, has_finding, source, limit]).encode()).hexdigest()
+        return list_cursor_page(db, query, order_key, order, scope, cursor, limit)
+    if cursor is not None:
+        raise HTTPException(status_code=422, detail="Select cursor pagination to use a cursor.")
     rows = list(db.scalars(query.limit(limit + 1).offset(offset)))
     next_offset = offset + limit if len(rows) > limit and offset + limit <= MAX_OFFSET else None
     return FlowPage(flows=[FlowInfo.model_validate(row) for row in rows[:limit]], next_offset=next_offset)
+
+
+def list_cursor_page(db, query, order_key, order, scope, cursor, limit):
+    if cursor is None:
+        snapshot = db.scalar(text("SELECT pg_current_snapshot()::text"))
+        try:
+            marker = FlowCursor(scope=scope, snapshot=snapshot)
+        except ValueError:
+            raise HTTPException(status_code=503, detail="Could not start stable flow browsing. Retry the request.") from None
+    else:
+        try:
+            marker = FlowCursor.model_validate_json(b64decode(cursor, altchars=b"-_", validate=True))
+            if marker.scope != scope or (
+                marker.after is not None and (order == "observed") != isinstance(marker.after[0], int)
+            ):
+                raise ValueError("cursor does not match the requested page")
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid cursor for these traffic filters and order.") from None
+
+    # The snapshot excludes transactions that commit after the first page, even
+    # when they insert older observed timestamps or tie an existing sort key.
+    query = query.where(text("pg_visible_in_snapshot(zeek_flows.insert_xid::xid8, CAST(:snapshot AS pg_snapshot))")
+                        .bindparams(snapshot=marker.snapshot))
+    if marker.after is not None:
+        query = query.where(tuple_(order_key, ZeekFlow.id) < tuple_(*marker.after))
+    rows = list(db.scalars(query.limit(limit + 1)))
+    next_cursor = None
+    if len(rows) > limit:
+        boundary = rows[limit - 1]
+        key = boundary.timestamp_ns if order == "observed" else boundary.ingested_at
+        next_cursor = marker.model_copy(update={"after": (key, boundary.id)}).encode()
+    return CursorFlowPage(flows=[FlowInfo.model_validate(row) for row in rows[:limit]], next_offset=None,
+                          page_cursor=marker.encode(), next_cursor=next_cursor)
 
 
 @router.get("/flows/{flow_id}", response_model=FlowDetail)

@@ -92,15 +92,17 @@ function Monitoring({ summary }: { summary: TrafficMonitoring }) {
 
 export function Traffic({ selected, revision, refresh }: { selected?: string; revision: number; refresh: () => void }) {
   const [filters, setFilters] = useState({ protocol: '', capture_id: '', has_finding: '', source: '', order: '' })
-  const [offset, setOffset] = useState(0)
+  const [pages, setPages] = useState<{ cursor: string | null; previous: string[] }>({ cursor: null, previous: [] })
+  const { cursor, previous } = pages
   const close = useRef<HTMLAnchorElement>(null)
   const summary = useResource(useCallback((signal: AbortSignal) => api.trafficSummary(signal), [revision]))
   const monitoring = useResource(useCallback((signal: AbortSignal) => api.trafficMonitoring(signal), [revision]), TRAFFIC_POLL_MS)
   const page = useResource(useCallback((signal: AbortSignal) => {
-    const query = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset) })
+    const query = new URLSearchParams({ limit: String(PAGE_SIZE), pagination: 'cursor' })
+    if (cursor) query.set('cursor', cursor)
     for (const [name, value] of Object.entries(filters)) if (value) query.set(name, value)
     return api.trafficFlows(query, signal)
-  }, [filters, offset, revision]), offset === 0 ? TRAFFIC_POLL_MS : undefined)
+  }, [filters, cursor, revision]), cursor === null ? TRAFFIC_POLL_MS : undefined)
   const loadDetail = useCallback((signal: AbortSignal) => api.trafficFlow(selected!, signal), [selected, revision])
   const details = useResource(selected ? loadDetail : null)
 
@@ -109,7 +111,7 @@ export function Traffic({ selected, revision, refresh }: { selected?: string; re
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const fields = new FormData(event.currentTarget)
-    setOffset(0)
+    setPages({ cursor: null, previous: [] })
     setFilters({ protocol: String(fields.get('protocol')), capture_id: String(fields.get('capture_id')).trim(),
       has_finding: String(fields.get('has_finding')), source: String(fields.get('source')), order: String(fields.get('order')) })
   }
@@ -154,10 +156,14 @@ export function Traffic({ selected, revision, refresh }: { selected?: string; re
       </State>}
       {page.value && (page.value.flows.length ? <TrafficTable flows={page.value.flows} /> :
         <State title="No flows to show" detail={summary.value?.total_flows === 0 ? 'Import a reviewed Zeek capture to get started.' : 'Try a different filter.'} />)}
-      {page.value && (offset > 0 || page.value.next_offset !== null) && <div className="panel-heading">
-        <button className="button secondary" disabled={offset === 0} onClick={() => setOffset(offset - PAGE_SIZE)}>Previous</button>
-        <button className="button secondary" disabled={page.value.next_offset === null}
-          onClick={() => setOffset(page.value?.next_offset ?? offset)}>Next</button>
+      {(cursor !== null || page.value?.next_cursor) && <div className="panel-heading">
+        <button className="button secondary" disabled={previous.length === 0}
+          onClick={() => setPages({ cursor: previous.at(-1) ?? null, previous: previous.slice(0, -1) })}>Previous</button>
+        <button className="button secondary" disabled={!page.value?.next_cursor}
+          onClick={() => {
+            if (page.value?.next_cursor) setPages({ cursor: page.value.next_cursor, previous: [...previous, page.value.page_cursor] })
+          }}>Next</button>
+        {cursor !== null && <button className="button secondary" onClick={() => setPages({ cursor: null, previous: [] })}>Resume live</button>}
       </div>}
     </section>
     {selected && <aside className="detail-pane" aria-label="Flow details" onKeyDown={event => {
