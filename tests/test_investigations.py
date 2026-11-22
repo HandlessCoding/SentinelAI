@@ -1,7 +1,6 @@
 """Exercise migrations and API persistence in isolated PostgreSQL test schemas."""
 
 from concurrent.futures import ThreadPoolExecutor
-import os
 from pathlib import Path
 from threading import Barrier
 from types import SimpleNamespace
@@ -20,14 +19,11 @@ from backend.database import database_url, get_session
 from backend.main import create_app
 from backend.models import Alert, AnalystNote, Incident, PredictionBatch
 from ml.inference import read_prediction_csv
+from support import requires_local_model
 
 
 ROOT = Path(__file__).resolve().parents[1]
 REVISION = "0002_zeek_traffic"
-requires_local_model = unittest.skipIf(
-    os.environ.get("SENTINELAI_CI_SYNTHETIC_ONLY") == "1",
-    "requires the locally frozen Level 1 model package",
-)
 
 
 class PostgreSQLSchemaTestCase(unittest.TestCase):

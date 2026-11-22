@@ -14,7 +14,8 @@ from backend.database import database_url, get_session
 from backend.main import create_app
 from backend.models import Alert, AnalystNote, Incident, PredictionBatch
 from ml.inference import ArtifactError, load_model
-from test_investigations import PostgreSQLSchemaTestCase, requires_local_model
+from support import requires_local_model
+from test_investigations import PostgreSQLSchemaTestCase
 
 
 SYNTHETIC_CSV = Path(__file__).resolve().parents[1] / "examples" / "unsw_nb15_inference.csv"

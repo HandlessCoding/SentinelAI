@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from backend.main import app, create_app
 from backend.schemas import MAX_BATCH_SIZE
 from ml.inference import ArtifactError, FEATURE_TYPES, InputValidationError, read_prediction_csv
+from support import requires_local_model
 
 
 class MockedBackendTests(unittest.TestCase):
@@ -97,6 +98,7 @@ class RealBackendTests(unittest.TestCase):
                 self.fail("App should only start after loading the model")
         unavailable.assert_called_once_with()
 
+    @requires_local_model
     def test_scores_synthetic_records_using_the_existing_package(self):
         sample = Path(__file__).resolve().parents[1] / "examples" / "unsw_nb15_inference.csv"
         records = list(read_prediction_csv(sample))

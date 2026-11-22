@@ -34,7 +34,7 @@ ingest, API, and migration cases with no private capture or model files.
 [Workflow](../.github/workflows/ci.yml) ·
 [GitHub service containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers)
 
-CI sets `SENTINELAI_CI_SYNTHETIC_ONLY=1` to skip the three tests that load the
+CI sets `SENTINELAI_CI_SYNTHETIC_ONLY=1` to skip the four tests that load the
 locally frozen Level 1 package. Real Zeek and the recorded G26, G27, and G29
 checks are opt-in locally. Set `SENTINELAI_ZEEK_BINARY` on a supported host
 for the real Zeek fixture. Set `SENTINELAI_G26_LAB_ROOT`,
