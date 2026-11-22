@@ -23,6 +23,25 @@ records, scores them, saves suspected alerts, creates and updates an
 incident, and retrieves its note after an application restart. The
 model artifact is reused for scoring.
 
+## GitHub regression checks
+
+One workflow runs Python checks against a disposable PostgreSQL service
+container, alongside frontend tests and the TypeScript and Vite build.
+The action commits, Python and Node versions, PostgreSQL image version,
+Python dependency pins, and npm lockfile control the setup. The database
+credentials are ephemeral for each CI attempt. CI runs synthetic evaluator,
+ingest, API, and migration cases with no private capture or model files.
+[Workflow](../.github/workflows/ci.yml) ·
+[GitHub service containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers)
+
+CI sets `SENTINELAI_CI_SYNTHETIC_ONLY=1` to skip the three tests that load the
+locally frozen Level 1 package. Real Zeek and the recorded G26, G27, and G29
+checks are opt-in locally. Set `SENTINELAI_ZEEK_BINARY` on a supported host
+for the real Zeek fixture. Set `SENTINELAI_G26_LAB_ROOT`,
+`SENTINELAI_G27_LAB_ROOT`, and `SENTINELAI_G29_LAB_ROOT` to the authorized
+local registries to include recorded checks in the Python command above.
+[Lab procedure](LAB_GUIDE.md#verify-the-sensor-offline)
+
 ## Failure and integrity coverage
 
 | Check | Expected behavior |

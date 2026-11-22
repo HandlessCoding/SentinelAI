@@ -1,6 +1,7 @@
 """Exercise migrations and API persistence in isolated PostgreSQL test schemas."""
 
 from concurrent.futures import ThreadPoolExecutor
+import os
 from pathlib import Path
 from threading import Barrier
 from types import SimpleNamespace
@@ -23,6 +24,10 @@ from ml.inference import read_prediction_csv
 
 ROOT = Path(__file__).resolve().parents[1]
 REVISION = "0002_zeek_traffic"
+requires_local_model = unittest.skipIf(
+    os.environ.get("SENTINELAI_CI_SYNTHETIC_ONLY") == "1",
+    "requires the locally frozen Level 1 model package",
+)
 
 
 class PostgreSQLSchemaTestCase(unittest.TestCase):
@@ -93,6 +98,7 @@ class PostgreSQLInvestigationsTests(PostgreSQLSchemaTestCase):
         self.migrate(command.upgrade, "head")
         self.assertEqual(set(inspect(self.engine).get_table_names()), expected)
 
+    @requires_local_model
     def test_saved_model_workflow_persists_across_app_lifespans(self):
         records = list(read_prediction_csv(ROOT / "examples" / "unsw_nb15_inference.csv"))
         with self.make_client() as client:
