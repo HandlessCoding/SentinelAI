@@ -1,0 +1,476 @@
+G37 T4 local offline APT simulation on 2026-11-22
+Serial transcript with terminal progress redraws removed.
+Raw serial SHA-256: b38c158fd0970c014bb19c4cf5d43df78f6e354fc00d61b8e251ff3ef7930c53
+
+=== G37_SENSOR_SIM_START ===
+Ubuntu 24.04 amd64, loopback only, no IPv4 routes
+7c8fad4ab8896fb66e343cb72d59d06f6af9ee53e04b70b2a47f203ae86aa11b  /recorded/status
+3488d542f15f605b37efe9e23e67676f74050f31d11d65a2fab5d1ae6f17fd65  /recorded/extended_states
+apt	2.8.3	amd64
+dpkg	1.22.6ubuntu6.6	amd64
+apt 2.8.3 (amd64)
+
+=== all ===
+
+Get:1 file:/repo/all ./ InRelease [538 B]
+
+Get:1 file:/repo/all ./ InRelease [538 B]
+
+Get:2 file:/repo/all ./ Packages [58.4 kB]
+
+Reading package lists... Done
+
+Reading package lists... Done
+
+Building dependency tree... Done
+
+Reading state information... 0%
+
+Reading state information... 0%
+
+Reading state information... Done
+
+libc6:
+  Installed: 2.39-0ubuntu8.9
+  Candidate: 2.39-0ubuntu8.12
+  Version table:
+     2.39-0ubuntu8.12 500
+        500 file:/repo/all ./ Packages
+ *** 2.39-0ubuntu8.9 100
+        100 /recorded/status
+libc-bin:
+  Installed: 2.39-0ubuntu8.9
+  Candidate: 2.39-0ubuntu8.12
+  Version table:
+     2.39-0ubuntu8.12 500
+        500 file:/repo/all ./ Packages
+ *** 2.39-0ubuntu8.9 100
+        100 /recorded/status
+locales:
+  Installed: 2.39-0ubuntu8.9
+  Candidate: 2.39-0ubuntu8.12
+  Version table:
+     2.39-0ubuntu8.12 500
+        500 file:/repo/all ./ Packages
+ *** 2.39-0ubuntu8.9 100
+        100 /recorded/status
+perl:
+  Installed: 5.38.2-3.2ubuntu0.6
+  Candidate: 5.38.2-3.2ubuntu0.7
+  Version table:
+     5.38.2-3.2ubuntu0.7 500
+        500 file:/repo/all ./ Packages
+ *** 5.38.2-3.2ubuntu0.6 100
+        100 /recorded/status
+libperl5.38t64:
+  Installed: 5.38.2-3.2ubuntu0.6
+  Candidate: 5.38.2-3.2ubuntu0.7
+  Version table:
+     5.38.2-3.2ubuntu0.7 500
+        500 file:/repo/all ./ Packages
+ *** 5.38.2-3.2ubuntu0.6 100
+        100 /recorded/status
+perl-modules-5.38:
+  Installed: 5.38.2-3.2ubuntu0.6
+  Candidate: 5.38.2-3.2ubuntu0.7
+  Version table:
+     5.38.2-3.2ubuntu0.7 500
+        500 file:/repo/all ./ Packages
+ *** 5.38.2-3.2ubuntu0.6 100
+        100 /recorded/status
+libsqlite3-0:
+  Installed: 3.45.1-1ubuntu2.8
+  Candidate: 3.45.1-1ubuntu2.9
+  Version table:
+     3.45.1-1ubuntu2.9 500
+        500 file:/repo/all ./ Packages
+ *** 3.45.1-1ubuntu2.8 100
+        100 /recorded/status
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  libjson-perl libllvm17t64 ssl-cert
+Suggested packages:
+  postgresql-doc-16
+Recommended packages:
+  libjson-xs-perl
+The following NEW packages will be installed:
+  libjson-perl libllvm17t64 libpq5 postgresql-16 postgresql-client-16
+  postgresql-client-common postgresql-common python3-pip-whl
+  python3-setuptools-whl python3.12-venv ssl-cert
+0 upgraded, 11 newly installed, 0 to remove and 7 not upgraded.
+Inst libjson-perl (4.10000-1 SentinelAI disposable T4:localhost [all])
+Inst postgresql-client-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Inst ssl-cert (1.1.2ubuntu1 SentinelAI disposable T4:localhost [all])
+Inst postgresql-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Inst libllvm17t64 (1:17.0.6-9ubuntu1 SentinelAI disposable T4:localhost [amd64])
+Inst libpq5 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Inst postgresql-client-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Inst postgresql-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Inst python3-pip-whl (24.0+dfsg-1ubuntu1.3 SentinelAI disposable T4:localhost [all])
+Inst python3-setuptools-whl (68.1.2-2ubuntu1.2 SentinelAI disposable T4:localhost [all])
+Inst python3.12-venv (3.12.3-1ubuntu0.17 SentinelAI disposable T4:localhost [amd64])
+Conf libjson-perl (4.10000-1 SentinelAI disposable T4:localhost [all])
+Conf postgresql-client-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Conf ssl-cert (1.1.2ubuntu1 SentinelAI disposable T4:localhost [all])
+Conf postgresql-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Conf libllvm17t64 (1:17.0.6-9ubuntu1 SentinelAI disposable T4:localhost [amd64])
+Conf libpq5 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Conf postgresql-client-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Conf postgresql-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Conf python3-pip-whl (24.0+dfsg-1ubuntu1.3 SentinelAI disposable T4:localhost [all])
+Conf python3-setuptools-whl (68.1.2-2ubuntu1.2 SentinelAI disposable T4:localhost [all])
+Conf python3.12-venv (3.12.3-1ubuntu0.17 SentinelAI disposable T4:localhost [amd64])
+
+=== minimal ===
+
+Get:1 file:/repo/minimal ./ InRelease [538 B]
+
+Get:1 file:/repo/minimal ./ InRelease [538 B]
+
+Get:2 file:/repo/minimal ./ Packages [12.7 kB]
+
+Reading package lists... Done
+
+Reading package lists... Done
+
+Building dependency tree... Done
+
+Reading state information... 0%
+
+Reading state information... 0%
+
+Reading state information... Done
+
+libc6:
+  Installed: 2.39-0ubuntu8.9
+  Candidate: 2.39-0ubuntu8.9
+  Version table:
+ *** 2.39-0ubuntu8.9 100
+        100 /recorded/status
+libc-bin:
+  Installed: 2.39-0ubuntu8.9
+  Candidate: 2.39-0ubuntu8.9
+  Version table:
+ *** 2.39-0ubuntu8.9 100
+        100 /recorded/status
+locales:
+  Installed: 2.39-0ubuntu8.9
+  Candidate: 2.39-0ubuntu8.9
+  Version table:
+ *** 2.39-0ubuntu8.9 100
+        100 /recorded/status
+perl:
+  Installed: 5.38.2-3.2ubuntu0.6
+  Candidate: 5.38.2-3.2ubuntu0.6
+  Version table:
+ *** 5.38.2-3.2ubuntu0.6 100
+        100 /recorded/status
+libperl5.38t64:
+  Installed: 5.38.2-3.2ubuntu0.6
+  Candidate: 5.38.2-3.2ubuntu0.6
+  Version table:
+ *** 5.38.2-3.2ubuntu0.6 100
+        100 /recorded/status
+perl-modules-5.38:
+  Installed: 5.38.2-3.2ubuntu0.6
+  Candidate: 5.38.2-3.2ubuntu0.6
+  Version table:
+ *** 5.38.2-3.2ubuntu0.6 100
+        100 /recorded/status
+libsqlite3-0:
+  Installed: 3.45.1-1ubuntu2.8
+  Candidate: 3.45.1-1ubuntu2.8
+  Version table:
+ *** 3.45.1-1ubuntu2.8 100
+        100 /recorded/status
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  libjson-perl libllvm17t64 ssl-cert
+Suggested packages:
+  postgresql-doc-16
+Recommended packages:
+  libjson-xs-perl
+The following NEW packages will be installed:
+  libjson-perl libllvm17t64 libpq5 postgresql-16 postgresql-client-16
+  postgresql-client-common postgresql-common python3-pip-whl
+  python3-setuptools-whl python3.12-venv ssl-cert
+0 upgraded, 11 newly installed, 0 to remove and 0 not upgraded.
+Inst libjson-perl (4.10000-1 SentinelAI disposable T4:localhost [all])
+Inst postgresql-client-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Inst ssl-cert (1.1.2ubuntu1 SentinelAI disposable T4:localhost [all])
+Inst postgresql-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Inst libllvm17t64 (1:17.0.6-9ubuntu1 SentinelAI disposable T4:localhost [amd64])
+Inst libpq5 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Inst postgresql-client-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Inst postgresql-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Inst python3-pip-whl (24.0+dfsg-1ubuntu1.3 SentinelAI disposable T4:localhost [all])
+Inst python3-setuptools-whl (68.1.2-2ubuntu1.2 SentinelAI disposable T4:localhost [all])
+Inst python3.12-venv (3.12.3-1ubuntu0.17 SentinelAI disposable T4:localhost [amd64])
+Conf libjson-perl (4.10000-1 SentinelAI disposable T4:localhost [all])
+Conf postgresql-client-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Conf ssl-cert (1.1.2ubuntu1 SentinelAI disposable T4:localhost [all])
+Conf postgresql-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Conf libllvm17t64 (1:17.0.6-9ubuntu1 SentinelAI disposable T4:localhost [amd64])
+Conf libpq5 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Conf postgresql-client-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Conf postgresql-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Conf python3-pip-whl (24.0+dfsg-1ubuntu1.3 SentinelAI disposable T4:localhost [all])
+Conf python3-setuptools-whl (68.1.2-2ubuntu1.2 SentinelAI disposable T4:localhost [all])
+Conf python3.12-venv (3.12.3-1ubuntu0.17 SentinelAI disposable T4:localhost [amd64])
+
+Reading package lists... Done
+
+Building dependency tree... Done
+
+Reading state information... 0%
+
+Reading state information... 0%
+
+Reading state information... Done
+
+The following additional packages will be installed:
+  libjson-perl libllvm17t64 ssl-cert
+Suggested packages:
+  postgresql-doc-16
+Recommended packages:
+  libjson-xs-perl
+The following NEW packages will be installed:
+  libjson-perl libllvm17t64 libpq5 postgresql-16 postgresql-client-16
+  postgresql-client-common postgresql-common python3-pip-whl
+  python3-setuptools-whl python3.12-venv ssl-cert
+0 upgraded, 11 newly installed, 0 to remove and 0 not upgraded.
+Need to get 0 B/46.0 MB of archives.
+After this operation, 178 MB of additional disk space will be used.
+
+Get:1 file:/repo/minimal ./ libjson-perl 4.10000-1 [81.9 kB]
+
+Get:2 file:/repo/minimal ./ postgresql-client-common 257build1.1 [36.4 kB]
+
+Get:3 file:/repo/minimal ./ ssl-cert 1.1.2ubuntu1 [17.8 kB]
+
+Get:4 file:/repo/minimal ./ postgresql-common 257build1.1 [161 kB]
+
+Get:5 file:/repo/minimal ./ libllvm17t64 1:17.0.6-9ubuntu1 [26.2 MB]
+
+Get:6 file:/repo/minimal ./ libpq5 16.15-0ubuntu0.24.04.1 [151 kB]
+
+Get:7 file:/repo/minimal ./ postgresql-client-16 16.15-0ubuntu0.24.04.1 [1301 kB]
+
+Get:8 file:/repo/minimal ./ postgresql-16 16.15-0ubuntu0.24.04.1 [15.6 MB]
+
+Get:9 file:/repo/minimal ./ python3-pip-whl 24.0+dfsg-1ubuntu1.3 [1707 kB]
+
+Get:10 file:/repo/minimal ./ python3-setuptools-whl 68.1.2-2ubuntu1.2 [716 kB]
+
+Get:11 file:/repo/minimal ./ python3.12-venv 3.12.3-1ubuntu0.17 [5684 B]
+
+Download complete and in download only mode
+
+G37_SENSOR_SIM_PASS
+
+=== security ===
+
+Get:1 file:/repo/security ./ InRelease [538 B]
+
+Get:1 file:/repo/security ./ InRelease [538 B]
+
+Get:2 file:/repo/security ./ Packages [33.7 kB]
+
+Reading package lists... Done
+
+Reading package lists... Done
+
+Building dependency tree... Done
+
+Reading state information... 0%
+
+Reading state information... 0%
+
+Reading state information... Done
+
+libc6:
+  Installed: 2.39-0ubuntu8.9
+  Candidate: 2.39-0ubuntu8.12
+  Version table:
+     2.39-0ubuntu8.12 500
+        500 file:/repo/security ./ Packages
+ *** 2.39-0ubuntu8.9 100
+        100 /recorded/status
+libc-bin:
+  Installed: 2.39-0ubuntu8.9
+  Candidate: 2.39-0ubuntu8.12
+  Version table:
+     2.39-0ubuntu8.12 500
+        500 file:/repo/security ./ Packages
+ *** 2.39-0ubuntu8.9 100
+        100 /recorded/status
+locales:
+  Installed: 2.39-0ubuntu8.9
+  Candidate: 2.39-0ubuntu8.9
+  Version table:
+ *** 2.39-0ubuntu8.9 100
+        100 /recorded/status
+perl:
+  Installed: 5.38.2-3.2ubuntu0.6
+  Candidate: 5.38.2-3.2ubuntu0.7
+  Version table:
+     5.38.2-3.2ubuntu0.7 500
+        500 file:/repo/security ./ Packages
+ *** 5.38.2-3.2ubuntu0.6 100
+        100 /recorded/status
+libperl5.38t64:
+  Installed: 5.38.2-3.2ubuntu0.6
+  Candidate: 5.38.2-3.2ubuntu0.7
+  Version table:
+     5.38.2-3.2ubuntu0.7 500
+        500 file:/repo/security ./ Packages
+ *** 5.38.2-3.2ubuntu0.6 100
+        100 /recorded/status
+perl-modules-5.38:
+  Installed: 5.38.2-3.2ubuntu0.6
+  Candidate: 5.38.2-3.2ubuntu0.7
+  Version table:
+     5.38.2-3.2ubuntu0.7 500
+        500 file:/repo/security ./ Packages
+ *** 5.38.2-3.2ubuntu0.6 100
+        100 /recorded/status
+libsqlite3-0:
+  Installed: 3.45.1-1ubuntu2.8
+  Candidate: 3.45.1-1ubuntu2.8
+  Version table:
+ *** 3.45.1-1ubuntu2.8 100
+        100 /recorded/status
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  libjson-perl libllvm17t64 ssl-cert
+Suggested packages:
+  glibc-doc libnss-nis libnss-nisplus perl-doc libterm-readline-gnu-perl
+  | libterm-readline-perl-perl make libtap-harness-archive-perl
+  postgresql-doc-16
+Recommended packages:
+  libjson-xs-perl
+The following NEW packages will be installed:
+  libjson-perl libllvm17t64 libpq5 postgresql-16 postgresql-client-16
+  postgresql-client-common postgresql-common python3-pip-whl
+  python3-setuptools-whl python3.12-venv ssl-cert
+The following packages will be upgraded:
+  libc-bin libc-dev-bin libc6 libc6-dev libperl5.38t64 perl perl-base
+  perl-modules-5.38
+8 upgraded, 11 newly installed, 0 to remove and 0 not upgraded.
+Inst libperl5.38t64 [5.38.2-3.2ubuntu0.6] (5.38.2-3.2ubuntu0.7 SentinelAI disposable T4:localhost [amd64]) [perl:amd64 ]
+Inst perl [5.38.2-3.2ubuntu0.6] (5.38.2-3.2ubuntu0.7 SentinelAI disposable T4:localhost [amd64]) []
+Inst perl-base [5.38.2-3.2ubuntu0.6] (5.38.2-3.2ubuntu0.7 SentinelAI disposable T4:localhost [amd64]) []
+Conf perl-base (5.38.2-3.2ubuntu0.7 SentinelAI disposable T4:localhost [amd64]) []
+Inst perl-modules-5.38 [5.38.2-3.2ubuntu0.6] (5.38.2-3.2ubuntu0.7 SentinelAI disposable T4:localhost [all])
+Inst libc6-dev [2.39-0ubuntu8.9] (2.39-0ubuntu8.12 SentinelAI disposable T4:localhost [amd64]) []
+Inst libc-dev-bin [2.39-0ubuntu8.9] (2.39-0ubuntu8.12 SentinelAI disposable T4:localhost [amd64]) []
+Inst libc6 [2.39-0ubuntu8.9] (2.39-0ubuntu8.12 SentinelAI disposable T4:localhost [amd64])
+Conf libc6 (2.39-0ubuntu8.12 SentinelAI disposable T4:localhost [amd64])
+Inst libc-bin [2.39-0ubuntu8.9] (2.39-0ubuntu8.12 SentinelAI disposable T4:localhost [amd64])
+Conf libc-bin (2.39-0ubuntu8.12 SentinelAI disposable T4:localhost [amd64])
+Inst libjson-perl (4.10000-1 SentinelAI disposable T4:localhost [all])
+Inst postgresql-client-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Inst ssl-cert (1.1.2ubuntu1 SentinelAI disposable T4:localhost [all])
+Inst postgresql-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Inst libllvm17t64 (1:17.0.6-9ubuntu1 SentinelAI disposable T4:localhost [amd64])
+Inst libpq5 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Inst postgresql-client-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Inst postgresql-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Inst python3-pip-whl (24.0+dfsg-1ubuntu1.3 SentinelAI disposable T4:localhost [all])
+Inst python3-setuptools-whl (68.1.2-2ubuntu1.2 SentinelAI disposable T4:localhost [all])
+Inst python3.12-venv (3.12.3-1ubuntu0.17 SentinelAI disposable T4:localhost [amd64])
+Conf libperl5.38t64 (5.38.2-3.2ubuntu0.7 SentinelAI disposable T4:localhost [amd64])
+Conf perl (5.38.2-3.2ubuntu0.7 SentinelAI disposable T4:localhost [amd64])
+Conf perl-modules-5.38 (5.38.2-3.2ubuntu0.7 SentinelAI disposable T4:localhost [all])
+Conf libc6-dev (2.39-0ubuntu8.12 SentinelAI disposable T4:localhost [amd64])
+Conf libc-dev-bin (2.39-0ubuntu8.12 SentinelAI disposable T4:localhost [amd64])
+Conf libjson-perl (4.10000-1 SentinelAI disposable T4:localhost [all])
+Conf postgresql-client-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Conf ssl-cert (1.1.2ubuntu1 SentinelAI disposable T4:localhost [all])
+Conf postgresql-common (257build1.1 SentinelAI disposable T4:localhost [all])
+Conf libllvm17t64 (1:17.0.6-9ubuntu1 SentinelAI disposable T4:localhost [amd64])
+Conf libpq5 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Conf postgresql-client-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Conf postgresql-16 (16.15-0ubuntu0.24.04.1 SentinelAI disposable T4:localhost [amd64])
+Conf python3-pip-whl (24.0+dfsg-1ubuntu1.3 SentinelAI disposable T4:localhost [all])
+Conf python3-setuptools-whl (68.1.2-2ubuntu1.2 SentinelAI disposable T4:localhost [all])
+Conf python3.12-venv (3.12.3-1ubuntu0.17 SentinelAI disposable T4:localhost [amd64])
+
+Reading package lists... Done
+
+Building dependency tree... Done
+
+Reading state information... 0%
+
+Reading state information... 0%
+
+Reading state information... Done
+
+The following additional packages will be installed:
+  libjson-perl libllvm17t64 ssl-cert
+Suggested packages:
+  glibc-doc libnss-nis libnss-nisplus perl-doc libterm-readline-gnu-perl
+  | libterm-readline-perl-perl make libtap-harness-archive-perl
+  postgresql-doc-16
+Recommended packages:
+  libjson-xs-perl
+The following NEW packages will be installed:
+  libjson-perl libllvm17t64 libpq5 postgresql-16 postgresql-client-16
+  postgresql-client-common postgresql-common python3-pip-whl
+  python3-setuptools-whl python3.12-venv ssl-cert
+The following packages will be upgraded:
+  libc-bin libc-dev-bin libc6 libc6-dev libperl5.38t64 perl perl-base
+  perl-modules-5.38
+8 upgraded, 11 newly installed, 0 to remove and 0 not upgraded.
+Need to get 0 B/62.1 MB of archives.
+After this operation, 178 MB of additional disk space will be used.
+
+Get:1 file:/repo/security ./ libperl5.38t64 5.38.2-3.2ubuntu0.7 [4864 kB]
+
+Get:2 file:/repo/security ./ perl 5.38.2-3.2ubuntu0.7 [231 kB]
+
+Get:3 file:/repo/security ./ perl-base 5.38.2-3.2ubuntu0.7 [1828 kB]
+
+Get:4 file:/repo/security ./ perl-modules-5.38 5.38.2-3.2ubuntu0.7 [3110 kB]
+
+Get:5 file:/repo/security ./ libc6-dev 2.39-0ubuntu8.12 [2125 kB]
+
+Get:6 file:/repo/security ./ libc-dev-bin 2.39-0ubuntu8.12 [20.4 kB]
+
+Get:7 file:/repo/security ./ libc6 2.39-0ubuntu8.12 [3264 kB]
+
+Get:8 file:/repo/security ./ libc-bin 2.39-0ubuntu8.12 [682 kB]
+
+Get:9 file:/repo/security ./ libjson-perl 4.10000-1 [81.9 kB]
+
+Get:10 file:/repo/security ./ postgresql-client-common 257build1.1 [36.4 kB]
+
+Get:11 file:/repo/security ./ ssl-cert 1.1.2ubuntu1 [17.8 kB]
+
+Get:12 file:/repo/security ./ postgresql-common 257build1.1 [161 kB]
+
+Get:13 file:/repo/security ./ libllvm17t64 1:17.0.6-9ubuntu1 [26.2 MB]
+
+Get:14 file:/repo/security ./ libpq5 16.15-0ubuntu0.24.04.1 [151 kB]
+
+Get:15 file:/repo/security ./ postgresql-client-16 16.15-0ubuntu0.24.04.1 [1301 kB]
+
+Get:16 file:/repo/security ./ postgresql-16 16.15-0ubuntu0.24.04.1 [15.6 MB]
+
+Get:17 file:/repo/security ./ python3-pip-whl 24.0+dfsg-1ubuntu1.3 [1707 kB]
+
+Get:18 file:/repo/security ./ python3-setuptools-whl 68.1.2-2ubuntu1.2 [716 kB]
+
+Get:19 file:/repo/security ./ python3.12-venv 3.12.3-1ubuntu0.17 [5684 B]
+
+Download complete and in download only mode
+
+G37_SECURITY_SIM_PASS
+
+G37_SENSOR_SIM_EXIT 0

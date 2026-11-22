@@ -1,0 +1,323 @@
+{
+  "schema_version": 1,
+  "status": "sensor_apt_simulation_passed_awaiting_exact_bundle_input_approval",
+  "source_revision": "38f9f7ed8c0a0dc226380ce2cdd5018142d81bbc",
+  "migration_revision": "0004_zeek_browsing",
+  "ubuntu_archive": {
+    "snapshot": "https://snapshot.ubuntu.com/ubuntu/20261122T130000Z/",
+    "components": [
+      "main",
+      "universe"
+    ],
+    "archive_signer": "F6ECB3762474EDA9D21B7022871920D1991BC93C",
+    "inrelease": [
+      {
+        "suite": "noble-security",
+        "sha256": "93c9d1d7a1898aafb79c5729e4805f857c194dcc939eb913ea76684d2f6230de"
+      },
+      {
+        "suite": "noble-updates",
+        "sha256": "42f3c1180ad0e1c0cb8ccfa2edfdb6eb631a2d3680cc5015ee0b93d6b68dbad1"
+      },
+      {
+        "suite": "noble",
+        "sha256": "cdb2f31d809f589719a53c6ad15f255b27569c4059542ada282aaa21b8e164b0"
+      }
+    ]
+  },
+  "sensor_baseline": {
+    "status_sha256": "7c8fad4ab8896fb66e343cb72d59d06f6af9ee53e04b70b2a47f203ae86aa11b",
+    "extended_states_sha256": "3488d542f15f605b37efe9e23e67676f74050f31d11d65a2fab5d1ae6f17fd65",
+    "package_count": 693,
+    "architecture": "amd64",
+    "apt_version": "2.8.3",
+    "dpkg_version": "1.22.6ubuntu6.6",
+    "available_root_bytes": 6807810048
+  },
+  "simulation": {
+    "environment": "QEMU RAM-only Ubuntu 24.04.5 amd64, no NIC, 1 vCPU and 2 GiB RAM",
+    "transcript": "docs/research/lab/G37_T4_SENSOR_APT_SIMULATION.txt",
+    "sources": "signed file-only repository",
+    "recommendations": false,
+    "provisioning_only": {
+      "installs": 11,
+      "upgrades": 0,
+      "removals": 0
+    },
+    "recommended": {
+      "installs": 11,
+      "upgrades": 8,
+      "removals": 0,
+      "zeek_changes": 0,
+      "unresolved_dependencies": 0
+    }
+  },
+  "proposed_apt": {
+    "archive_bytes": 62075818,
+    "estimated_net_installed_kib": 173695,
+    "install": [
+      {
+        "name": "libjson-perl",
+        "version": "4.10000-1",
+        "architecture": "all",
+        "installed_size_kib": 238,
+        "bytes": 81896,
+        "sha256": "b88095b0b6307650f581c17240ea2cc7ba1676c6f7eb72b0066eaf159215d926",
+        "repository_path": "pool/main/libj/libjson-perl/libjson-perl_4.10000-1_all.deb"
+      },
+      {
+        "name": "libllvm17t64",
+        "version": "1:17.0.6-9ubuntu1",
+        "architecture": "amd64",
+        "installed_size_kib": 120829,
+        "bytes": 26162724,
+        "sha256": "1863b5459ca4a6691f5e039e76157f074ee08b48176267642ee4dfea065f5db4",
+        "repository_path": "pool/main/l/llvm-toolchain-17/libllvm17t64_17.0.6-9ubuntu1_amd64.deb"
+      },
+      {
+        "name": "libpq5",
+        "version": "16.15-0ubuntu0.24.04.1",
+        "architecture": "amd64",
+        "installed_size_kib": 440,
+        "bytes": 151262,
+        "sha256": "3f96dd36bcd7841172c1ead4965da20a193bb9ccf9a93a3f5a3ac7f56369dbb1",
+        "repository_path": "pool/main/p/postgresql-16/libpq5_16.15-0ubuntu0.24.04.1_amd64.deb"
+      },
+      {
+        "name": "postgresql-16",
+        "version": "16.15-0ubuntu0.24.04.1",
+        "architecture": "amd64",
+        "installed_size_kib": 44352,
+        "bytes": 15610426,
+        "sha256": "d60ae76fb862cd4cca7bfdcdcdcc271c5e1d75f6b7915305ce2d962735a4b666",
+        "repository_path": "pool/main/p/postgresql-16/postgresql-16_16.15-0ubuntu0.24.04.1_amd64.deb"
+      },
+      {
+        "name": "postgresql-client-16",
+        "version": "16.15-0ubuntu0.24.04.1",
+        "architecture": "amd64",
+        "installed_size_kib": 4272,
+        "bytes": 1301302,
+        "sha256": "4796f72e1a7270ad8c17b1ecb025cd453f692b42c10aaf89f6b476da61761eac",
+        "repository_path": "pool/main/p/postgresql-16/postgresql-client-16_16.15-0ubuntu0.24.04.1_amd64.deb"
+      },
+      {
+        "name": "postgresql-client-common",
+        "version": "257build1.1",
+        "architecture": "all",
+        "installed_size_kib": 131,
+        "bytes": 36410,
+        "sha256": "696255bc15e9736edfcb8f7d0309deaf35d761233bd26e2db14d2ae8660a9602",
+        "repository_path": "pool/main/p/postgresql-common/postgresql-client-common_257build1.1_all.deb"
+      },
+      {
+        "name": "postgresql-common",
+        "version": "257build1.1",
+        "architecture": "all",
+        "installed_size_kib": 649,
+        "bytes": 161444,
+        "sha256": "5363ba39f18ede7f54776d41356d7dd6e859d089ee0092096050500c9d4413f5",
+        "repository_path": "pool/main/p/postgresql-common/postgresql-common_257build1.1_all.deb"
+      },
+      {
+        "name": "python3-pip-whl",
+        "version": "24.0+dfsg-1ubuntu1.3",
+        "architecture": "all",
+        "installed_size_kib": 1809,
+        "bytes": 1706638,
+        "sha256": "4b7c50db8f261b208c1d9cde8db148c1f682cc516957b986ada5088cfcee1359",
+        "repository_path": "pool/universe/p/python-pip/python3-pip-whl_24.0+dfsg-1ubuntu1.3_all.deb"
+      },
+      {
+        "name": "python3-setuptools-whl",
+        "version": "68.1.2-2ubuntu1.2",
+        "architecture": "all",
+        "installed_size_kib": 875,
+        "bytes": 716284,
+        "sha256": "edfa94cc1f6a33af99cfaf6ebfe35dbcd9c4bdd8555b90c0d8e78479faf5c8f0",
+        "repository_path": "pool/universe/s/setuptools/python3-setuptools-whl_68.1.2-2ubuntu1.2_all.deb"
+      },
+      {
+        "name": "python3.12-venv",
+        "version": "3.12.3-1ubuntu0.17",
+        "architecture": "amd64",
+        "installed_size_kib": 28,
+        "bytes": 5684,
+        "sha256": "b8d4bfea3df63945b6a202bd0773caf7727dde86d2df91df6e88a8ccf7c18b7e",
+        "repository_path": "pool/universe/p/python3.12/python3.12-venv_3.12.3-1ubuntu0.17_amd64.deb"
+      },
+      {
+        "name": "ssl-cert",
+        "version": "1.1.2ubuntu1",
+        "architecture": "all",
+        "installed_size_kib": 66,
+        "bytes": 17826,
+        "sha256": "99654cc8dd7e2cd4cc907504f7564c0055d8cb06e1bf5aa93f822f007981d271",
+        "repository_path": "pool/main/s/ssl-cert/ssl-cert_1.1.2ubuntu1_all.deb"
+      }
+    ],
+    "upgrade": [
+      {
+        "name": "libc6",
+        "version": "2.39-0ubuntu8.12",
+        "architecture": "amd64",
+        "installed_size_kib": 13433,
+        "bytes": 3264258,
+        "sha256": "d821b41fc59cb4978ecd53bc83e5c964ac15d305c8d2ac4c8a35aebe55010fb9",
+        "repository_path": "pool/main/g/glibc/libc6_2.39-0ubuntu8.12_amd64.deb",
+        "installed_sensor_version": "2.39-0ubuntu8.9"
+      },
+      {
+        "name": "libc-bin",
+        "version": "2.39-0ubuntu8.12",
+        "architecture": "amd64",
+        "installed_size_kib": 2185,
+        "bytes": 681714,
+        "sha256": "22f0393621e72ed1b53d228ee332180269182b5445761c7d7b74f5cba75a1dd6",
+        "repository_path": "pool/main/g/glibc/libc-bin_2.39-0ubuntu8.12_amd64.deb",
+        "installed_sensor_version": "2.39-0ubuntu8.9"
+      },
+      {
+        "name": "libc6-dev",
+        "version": "2.39-0ubuntu8.12",
+        "architecture": "amd64",
+        "installed_size_kib": 13113,
+        "bytes": 2124506,
+        "sha256": "d81dd6dc9d515762cc93f338efa6219252acf3e2e87b5b89dd7dc517741e6eed",
+        "repository_path": "pool/main/g/glibc/libc6-dev_2.39-0ubuntu8.12_amd64.deb",
+        "installed_sensor_version": "2.39-0ubuntu8.9"
+      },
+      {
+        "name": "libc-dev-bin",
+        "version": "2.39-0ubuntu8.12",
+        "architecture": "amd64",
+        "installed_size_kib": 108,
+        "bytes": 20450,
+        "sha256": "74ac21dab2a0a6524a2cf9de623adf1bb1f7d9b672e6b0f70adec0c40452bae3",
+        "repository_path": "pool/main/g/glibc/libc-dev-bin_2.39-0ubuntu8.12_amd64.deb",
+        "installed_sensor_version": "2.39-0ubuntu8.9"
+      },
+      {
+        "name": "perl",
+        "version": "5.38.2-3.2ubuntu0.7",
+        "architecture": "amd64",
+        "installed_size_kib": 674,
+        "bytes": 231404,
+        "sha256": "5e95eaa0db06b3eb4c669c033a6a9347f47c2923c8fd1297c7d9c553c4f8d153",
+        "repository_path": "pool/main/p/perl/perl_5.38.2-3.2ubuntu0.7_amd64.deb",
+        "installed_sensor_version": "5.38.2-3.2ubuntu0.6"
+      },
+      {
+        "name": "libperl5.38t64",
+        "version": "5.38.2-3.2ubuntu0.7",
+        "architecture": "amd64",
+        "installed_size_kib": 29341,
+        "bytes": 4863750,
+        "sha256": "134f2d9341d97b8a3582df4d646f8da19d505aa75eb42e67cefb7570c42be7cc",
+        "repository_path": "pool/main/p/perl/libperl5.38t64_5.38.2-3.2ubuntu0.7_amd64.deb",
+        "installed_sensor_version": "5.38.2-3.2ubuntu0.6"
+      },
+      {
+        "name": "perl-modules-5.38",
+        "version": "5.38.2-3.2ubuntu0.7",
+        "architecture": "all",
+        "installed_size_kib": 19167,
+        "bytes": 3109958,
+        "sha256": "8d2652aa897458aa2482be38d1d0fb26745e87450ab5b620b33180ab0078190c",
+        "repository_path": "pool/main/p/perl/perl-modules-5.38_5.38.2-3.2ubuntu0.7_all.deb",
+        "installed_sensor_version": "5.38.2-3.2ubuntu0.6"
+      },
+      {
+        "name": "perl-base",
+        "version": "5.38.2-3.2ubuntu0.7",
+        "architecture": "amd64",
+        "installed_size_kib": 7919,
+        "bytes": 1827882,
+        "sha256": "38045b6be63d521ab389b2fe619f0d22ad0582191605e6108a4c51b452090265",
+        "repository_path": "pool/main/p/perl/perl-base_5.38.2-3.2ubuntu0.7_amd64.deb",
+        "installed_sensor_version": "5.38.2-3.2ubuntu0.6"
+      }
+    ],
+    "retain": {
+      "locales": "2.39-0ubuntu8.9",
+      "libsqlite3-0": "3.45.1-1ubuntu2.8",
+      "zeek-8.0": "1:8.0.11-0"
+    }
+  },
+  "python": {
+    "version": "3.12.3",
+    "wheelhouse": [
+      {
+        "file": "alembic-1.17.2-py3-none-any.whl",
+        "bytes": 248554,
+        "sha256": "f483dd1fe93f6c5d49217055e4d15b905b425b6af906746abb35b69c1996c4e6"
+      },
+      {
+        "file": "greenlet-3.5.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl",
+        "bytes": 621404,
+        "sha256": "975736b002ed080d124cf81a79cb7e05cb26d6b3f5c7a7b651c0fcce70353aa1"
+      },
+      {
+        "file": "mako-1.4.3-py3-none-any.whl",
+        "bytes": 80164,
+        "sha256": "723296007c870bfd6b3f0c3230dba7198096e5269297ebf5e4eff9e7ffa39d4f"
+      },
+      {
+        "file": "markupsafe-3.0.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "bytes": 22985,
+        "sha256": "8e124f974786f831d6043728e38296969d3579db8896fe004682f5758e613581"
+      },
+      {
+        "file": "pip-26.3-py3-none-any.whl",
+        "bytes": 1950951,
+        "sha256": "f3b60b20ffaadd4415ed7957212a38ac63fa4c5fa375bd0f4a797777940fad13"
+      },
+      {
+        "file": "psycopg-3.3.2-py3-none-any.whl",
+        "bytes": 212774,
+        "sha256": "3e94bc5f4690247d734599af56e51bae8e0db8e4311ea413f801fef82b14a99b"
+      },
+      {
+        "file": "psycopg_binary-3.3.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+        "bytes": 5132731,
+        "sha256": "d45acedcaa58619355f18e0f42af542fcad3fd84ace4b8355d3a5dea23318578"
+      },
+      {
+        "file": "python_dotenv-1.2.4-py3-none-any.whl",
+        "bytes": 23266,
+        "sha256": "42269a8a5b3fd54ffa6f3d84b18abed50064717576b4ecf03dc4a55d8aa04fdc"
+      },
+      {
+        "file": "sqlalchemy-2.0.45-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "bytes": 3348268,
+        "sha256": "ba547ac0b361ab4f1608afbc8432db669bd0819b3e12e29fb5fa9529a8bba81d"
+      },
+      {
+        "file": "typing_extensions-4.16.0-py3-none-any.whl",
+        "bytes": 45571,
+        "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+      }
+    ]
+  },
+  "disposable_repeat_smoke": {
+    "run": "https://github.com/HandlessCoding/SentinelAI/actions/runs/45051441705",
+    "harness_revision": "2d83c46d74e56441fb0ac1d37460d527d48ef366",
+    "scope": "Same package revisions for the proposed sensor transaction, plus disposable baseline dependencies",
+    "all_phases_cgroup_peak_bytes": 669556736,
+    "checkpoint_offset": 160,
+    "cpu_seconds": 2.013,
+    "duplicate_rows": 1,
+    "flows": 1,
+    "guest_limit_memory_bytes": 2147483648,
+    "kernel": "hosted Linux container kernel",
+    "listener": "127.0.0.1:5432 only",
+    "migration": "0004_zeek_browsing",
+    "non_superuser_worker": true,
+    "postgresql": "16.15",
+    "postgresql_data_bytes": 48287661,
+    "runtime_sampled_peak_bytes": 669294592,
+    "snapshot_survived_postgres_restart": true,
+    "venv_bytes": 60134984,
+    "wall_seconds": 6.559
+  }
+}
