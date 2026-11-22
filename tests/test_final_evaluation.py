@@ -14,7 +14,8 @@ import numpy as np
 
 from ml import evaluate_final
 from ml.inference import (
-    DECISION_THRESHOLD, FEATURE_TYPES, MODEL_VERSION, InferenceModel, feature_schema, runtime_versions,
+    ARTIFACT_FORMAT_VERSION, DECISION_THRESHOLD, FEATURE_TYPES, MODEL_VERSION, InferenceModel, feature_schema,
+    runtime_versions,
 )
 
 
@@ -62,6 +63,7 @@ class FinalEvaluationTests(unittest.TestCase):
             (106, "7", 1, "Exploits"),
             (107, "8", 0, "Normal"),
         ], reorder=True)
+        self.test_digest = sha256(self.test_csv.read_bytes()).hexdigest()
 
         probabilities = {1: 0.9, 2: 0.55, 3: 0.5, 4: 0.8, 7: 0.2, 8: 0.4}
 
@@ -133,6 +135,7 @@ class FinalEvaluationTests(unittest.TestCase):
         payload = b"synthetic pinned model bytes"
         (artifact / "pipeline.pkl").write_bytes(payload)
         metadata = {
+            "format_version": ARTIFACT_FORMAT_VERSION,
             "model_version": MODEL_VERSION,
             "feature_schema": feature_schema(),
             "decision_threshold": DECISION_THRESHOLD,
@@ -150,6 +153,7 @@ class FinalEvaluationTests(unittest.TestCase):
             TEST_CSV=self.test_csv,
             FROZEN_PIPELINE_SHA256=metadata["pipeline_sha256"],
             FROZEN_TRAINING_SHA256=metadata["training"]["sha256"],
+            FROZEN_TEST_SHA256=self.test_digest,
             EXPECTED_TRAINING_ROWS=5,
             EXPECTED_TEST_ROWS=7,
         )
@@ -163,11 +167,55 @@ class FinalEvaluationTests(unittest.TestCase):
         ) as load:
             self.assertEqual(evaluate_final.main([]), 0)
 
-        load.assert_called_once_with(artifact)
+        load.assert_called_once_with(artifact, expected_pipeline_sha256=metadata["pipeline_sha256"])
         report = json.loads(output.getvalue())
         self.assertEqual(report["decision_threshold"], DECISION_THRESHOLD)
         self.assertEqual(report["test_csv"]["sha256"], sha256(self.test_csv.read_bytes()).hexdigest())
         self.assertEqual(report["metrics"]["confusion_matrix"], [[2, 1], [2, 2]])
+
+    def test_cli_rejects_a_same_shape_test_csv_with_an_unexpected_digest(self):
+        artifact, metadata = self.frozen_fixture()
+        (artifact / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+        original = self.test_csv.read_bytes()
+        changed = original.replace(b",101\r\n", b",201\r\n", 1)
+        self.assertNotEqual(changed, original)
+        self.assertEqual(len(changed), len(original))
+        self.test_csv.write_bytes(changed)
+        output, error = io.StringIO(), io.StringIO()
+        with self.cli_paths(artifact, metadata), redirect_stdout(output), redirect_stderr(error), patch.object(
+            evaluate_final, "load_model", return_value=self.model
+        ):
+            self.assertEqual(evaluate_final.main([]), 1)
+        self.assertIn("Test CSV SHA-256 does not match the official G10 test partition", error.getvalue())
+        self.assertEqual(output.getvalue(), "")
+        self.pipeline.predict_proba.assert_not_called()
+
+    def test_cli_scores_verified_bytes_even_if_the_test_path_changes_temporarily(self):
+        artifact, metadata = self.frozen_fixture()
+        (artifact / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+        original = self.test_csv.read_bytes()
+        alternate = original.replace(b",1,101\r\n", b",7,101\r\n", 1)
+        self.assertNotEqual(alternate, original)
+        read_csv = evaluate_final.read_prediction_csv
+        score = self.pipeline.predict_proba.side_effect
+
+        def replace_before_reading_training(path):
+            if path == self.training_csv:
+                self.test_csv.write_bytes(alternate)
+            return read_csv(path)
+
+        def restore_before_scoring(batch):
+            self.test_csv.write_bytes(original)
+            return score(batch)
+
+        self.pipeline.predict_proba.side_effect = restore_before_scoring
+        output = io.StringIO()
+        with self.cli_paths(artifact, metadata), redirect_stdout(output), patch.object(
+            evaluate_final, "load_model", return_value=self.model
+        ), patch.object(evaluate_final, "read_prediction_csv", side_effect=replace_before_reading_training):
+            self.assertEqual(evaluate_final.main([]), 0)
+
+        self.assertEqual(json.loads(output.getvalue())["metrics"]["confusion_matrix"], [[2, 1], [2, 2]])
 
     def test_cli_rejects_freeze_mismatches_before_opening_held_out_data(self):
         artifact, metadata = self.frozen_fixture()
@@ -196,6 +244,6 @@ class FinalEvaluationTests(unittest.TestCase):
                 self.training_csv.write_bytes(training)
                 with self.cli_paths(artifact, metadata), redirect_stderr(io.StringIO()), patch.object(
                     Path, "open", new=guarded_open
-                ), patch.object(evaluate_final, "load_model", return_value=self.model) as load:
+                ), patch("ml.inference.pickle.loads") as deserialize:
                     self.assertNotEqual(evaluate_final.main([]), 0)
-                load.assert_not_called()
+                deserialize.assert_not_called()

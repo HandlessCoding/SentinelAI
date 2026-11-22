@@ -16,7 +16,7 @@ from backend.investigations import router as investigation_router
 from backend.routes import router
 from backend.schemas import MAX_BATCH_SIZE
 from backend.traffic import router as traffic_router
-from ml.inference import DEFAULT_ARTIFACT_DIR, load_model
+from ml.inference import DEFAULT_ARTIFACT_DIR, FROZEN_PIPELINE_SHA256, load_model
 
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def load_local_model():
     repository_root = Path(__file__).resolve().parents[1]
-    return load_model(repository_root / DEFAULT_ARTIFACT_DIR)
+    return load_model(repository_root / DEFAULT_ARTIFACT_DIR, expected_pipeline_sha256=FROZEN_PIPELINE_SHA256)
 
 
 def create_app(model_loader=load_local_model):

@@ -37,8 +37,10 @@ and the two prepared partitions under the Git-ignored `data/` directory.
 & .\.venv\Scripts\python.exe -B -m ml.evaluate_final
 ```
 
-The command checks the artifact and training fingerprint before scoring
-the complete official test CSV. It uses the existing `ml.inference`
+The command checks the artifact and training fingerprints, then requires the
+published test CSV SHA-256 before scoring a verified temporary snapshot.
+The snapshot is discarded when scoring finishes. The command checks both
+source partition digests again before publishing a report. It uses the existing `ml.inference`
 loader and prediction method, processes records in bounded batches, and
 prints an aggregate JSON report. The two partitions are read-only.
 The binary `label` supplies ground truth. `attack_cat` is used only to

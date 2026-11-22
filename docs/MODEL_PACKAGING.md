@@ -17,7 +17,9 @@ the model, score the bundled synthetic records, and run the tests.
 Training uses the complete official training partition. The test partition
 is reserved for final evaluation. The training command publishes both package
 files together and refuses to overwrite an existing package for this version.
-Inference uses the saved pipeline directly.
+Standalone inference uses the saved pipeline directly. Default app startup
+and tests that exercise it require the recorded G5 digest below, including
+when you use a rebuilt package.
 
 ## Package contents and training record
 
@@ -94,6 +96,8 @@ synchronous handler or a worker thread when serving from an async handler.
 Pickle requires a trusted source. Use packages created locally by the
 training command and keep the artifact directory under operator control.
 The loader checks schema, exact runtime versions, and the pipeline digest
-before deserialization. The digest detects mismatches with the manifest,
-while trust comes from the local build and control of the package directory.
+against the manifest before deserialization. The default FastAPI app and
+official G10 evaluator also require the recorded G5 pipeline digest.
+Standalone inference still supports separately built packages from a
+trusted local directory.
 [Scikit-learn model persistence guidance](https://scikit-learn.org/1.7/model_persistence.html#security-maintainability-limitations)

@@ -21,6 +21,7 @@ from ml.inspect_dataset import DECIMAL, INTEGER, read_rows
 
 
 MODEL_VERSION = "unsw-nb15-rf-v1"
+FROZEN_PIPELINE_SHA256 = "8c37b095dba6cd0f58931ff91e713b0a05f84678b4829c387c788e196b8e1cd6"
 ARTIFACT_FORMAT_VERSION = 1
 DEFAULT_ARTIFACT_DIR = Path("artifacts") / MODEL_VERSION
 DECISION_THRESHOLD = 0.5
@@ -194,11 +195,12 @@ class InferenceModel:
         return predictions
 
 
-def load_model(trusted_directory=DEFAULT_ARTIFACT_DIR):
+def load_model(trusted_directory=DEFAULT_ARTIFACT_DIR, *, expected_pipeline_sha256: str | None = None):
     """Load a G5 package from a directory controlled by the local operator.
 
     Pickle deserializes Python objects and requires a trusted package source.
-    The manifest digest checks consistency, rather than authenticating a source.
+    The manifest digest checks package consistency. An independent expected
+    digest can also pin the exact pipeline bytes before deserialization.
     """
     directory = Path(trusted_directory)
     try:
@@ -218,7 +220,10 @@ def load_model(trusted_directory=DEFAULT_ARTIFACT_DIR):
         payload = (directory / "pipeline.pkl").read_bytes()
     except OSError as error:
         raise ArtifactError(f"Cannot read the local pipeline: {error}") from error
-    if sha256(payload).hexdigest() != metadata.get("pipeline_sha256"):
+    digest = sha256(payload).hexdigest()
+    if expected_pipeline_sha256 is not None and digest != expected_pipeline_sha256:
+        raise ArtifactError("Pipeline SHA-256 digest does not match the frozen G5 artifact")
+    if digest != metadata.get("pipeline_sha256"):
         raise ArtifactError("pipeline digest does not match metadata.json")
     try:
         pipeline = pickle.loads(payload)
