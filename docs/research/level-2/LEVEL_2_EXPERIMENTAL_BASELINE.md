@@ -243,3 +243,170 @@ The recorded run used Python 3.12.3, NumPy 2.2.6, and scikit-learn 1.7.2.
 All **118 Python tests** and **22 frontend tests** passed, along with the
 frontend production build. The frozen Level 1 artifact matched its
 recorded digest. The CSV and aggregate run JSON are ignored by Git.
+
+## G32 UNSW-NB15 development restart
+
+### Prior evidence and scope
+
+G1 identified repeated predictors and conflicting labels. G2–G4 kept
+exact raw-vector groups together and established a training-only comparison
+and threshold baseline. G5 packaged the selected forest. G10 reported
+**84.90% accuracy, 99.35% attack recall, and 32.81% false-positive rate** on
+the official UNSW-NB15 test partition. Those figures are historical context.
+G32 accesses only the official training CSV and uses a newly fitted G4 forest
+as its same-partition reference.
+[G1 analysis](../level-1/DATASET_ANALYSIS.md) ·
+[G3 thresholds](../level-1/THRESHOLD_ANALYSIS.md) ·
+[G4 forest](../level-1/MODEL_COMPARISON.md) ·
+[G10 evaluation](../../FINAL_MODEL_EVALUATION.md)
+
+Conflicting labels prevent a deterministic classifier from separating some
+identical inputs. G10 also measured a 32.735% FPR among test rows without an
+exact training match. Exact overlap alone cannot explain the false-alarm
+burden. The high-recall operating point, overlapping class scores, and shift
+in feature distributions or scenario coverage are plausible contributors.
+Attack prevalence affects precision and overall accuracy. It does not by
+itself explain a class-conditional FPR change.
+[G10 overlap and limitations](../../FINAL_MODEL_EVALUATION.md#exact-predictor-overlap)
+
+G13–G16 identified exporter differences and provenance or grouping limits in
+NF-ToN-IoT-v2. G17–G19 found that the corrected CIC-IDS2017 chronology could
+not meet the prespecified overlap and retention gates. G20–G24 could not
+verify adequate independent IoT-23 positive coverage and benign label
+provenance. G32 therefore investigates benchmark behavior within a single
+UNSW feature contract. UNSW's engineered fields have no validated mapping to
+the current Zeek collector. The reserved 2018 benchmark stays sealed.
+[Dataset strategy](LEVEL_2_DATA_STRATEGY.md) ·
+[CIC-IDS2017 decision](LEVEL_2_CHRONOLOGICAL_BASELINE.md#decision) ·
+[IoT-23 decision](LEVEL_2_IOT23_CAPTURE_RECONCILIATION.md)
+
+### Prespecified split and operating points
+
+- Pin the training CSV by SHA-256. Use all 42 predictors and exclude `id`,
+  `label`, and `attack_cat`. Keep `service = "-"` and the original FTP values
+  categorical. Parse numerical strings as finite float64 values so equivalent
+  spellings share a group.
+- Use seven stratified group folds, with seed `32042` assigning group IDs
+  before the ordered allocator. Allocate folds 0–3 to fitting, 4 to
+  calibration, 5 to model comparison, and 6 to final development validation.
+  Require complete row coverage, zero overlap for raw and normalized keys,
+  at least 1,000 rows of each class per role, and attack share within 7.5
+  percentage points of the full CSV. Keep all conflicting rows. Labels in
+  the final role contribute to split construction and coverage checks only
+  before model and threshold selection. The CSV lacks capture identifiers
+  needed to check session dependence or near-duplicate leakage.
+- Fit the G2 Logistic Regression and G4 48-tree Random Forest pipelines on
+  the fit role. Add histogram gradient boosting with 100 iterations, fixed
+  model seed `42`, fit-only ordinal category encoding and native categorical
+  splits. Disable early stopping. Use one worker and one native thread.
+  [Grouped splitting](https://scikit-learn.org/1.7/modules/generated/sklearn.model_selection.StratifiedGroupKFold.html) ·
+  [Histogram gradient boosting](https://scikit-learn.org/1.7/modules/generated/sklearn.ensemble.HistGradientBoostingClassifier.html)
+- On calibration, choose the lowest FPR with at least 95% recall. Break ties
+  by higher recall and then higher threshold. The calibrated rule includes
+  score ties. The default reference uses scores strictly above 0.5. The
+  scores are used for thresholding without probability recalibration.
+- Select the lowest-FPR candidate with at least 95% recall on comparison.
+  If none meets the floor, record the failure and select by highest recall,
+  then lowest FPR, for a diagnostic final check. Inspect feature importance
+  using permutation of individual raw columns on 1,024 comparison rows
+  with seed `32043` and two repeats. Importance plays no part in selection.
+  Write the winner, pipeline digest, and threshold before scoring the final
+  partition once.
+
+Run from the repository root with the pinned Python environment and the
+official training CSV at `data/UNSW_NB15_training-set.csv`. Use a fresh
+ignored directory for a reproduction of this experiment.
+
+```powershell
+$env:LOKY_MAX_CPU_COUNT = '1'
+& .\.venv\Scripts\python.exe -B -m ml.run_unsw_development --output data/g32-reproduction
+```
+
+The ignored output includes a split audit, zero-based CSV data-row indices,
+candidate reports, the frozen experimental pipeline, an exclusive final-score
+marker, and final metrics. A reproduction uses the same already evaluated
+development partition. It provides no new blind evidence.
+[Runner](../../../ml/run_unsw_development.py) ·
+[Split and audit](../../../ml/unsw_development_split.py)
+
+### Split audit
+
+The pinned CSV SHA-256 is
+`bec7dd5ec88dc2a0ccc7a07879d338395ed7421750f675fd0339e07dfe0648fa`.
+The split passed every gate and retained all 175,341 rows. Raw and normalized
+keys both gave 101,040 distinct vectors and 74,301 repeated rows beyond the
+first occurrence. All six role pairs shared zero groups under both key
+definitions. The 229 conflicting groups cover 940 rows. The minority labels
+within those groups establish a lower bound of 321 errors for a deterministic
+classifier of those exact inputs across the full CSV. This bound leaves other
+errors unexplained.
+
+| Role | Rows | Normal | Attack | Conflicting groups |
+| --- | ---: | ---: | ---: | ---: |
+| Fit | 100,199 | 32,002 | 68,197 | 140 |
+| Calibration | 25,048 | 8,000 | 17,048 | 34 |
+| Comparison | 25,047 | 7,999 | 17,048 | 27 |
+| Final development validation | 25,047 | 7,999 | 17,048 | 28 |
+
+### Calibration and candidate comparison
+
+Each candidate met the calibration recall floor. The table shows the
+fixed threshold carried into comparison. Confusion counts are ordered
+TN / FP / FN / TP throughout this section.
+
+| Candidate | Threshold | Calibration recall | Calibration FPR | Confusion counts |
+| --- | ---: | ---: | ---: | --- |
+| Logistic Regression | 0.690879 | 95.02% | 11.03% | 7,118 / 882 / 849 / 16,199 |
+| Random Forest | 0.657562 | 95.00% | 6.19% | 7,505 / 495 / 852 / 16,196 |
+| Histogram gradient boosting | 0.647878 | 95.04% | 5.46% | 7,563 / 437 / 845 / 16,203 |
+
+| Comparison candidate | Operating point | Accuracy | Recall | FPR | Precision | Balanced accuracy | Confusion counts |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Logistic Regression | Default | 93.66% | 98.84% | 17.36% | 92.38% | 90.74% | 6,610 / 1,389 / 198 / 16,850 |
+| Logistic Regression | Calibrated | 93.29% | 94.82% | 9.96% | 95.30% | 92.43% | 7,202 / 797 / 883 / 16,165 |
+| Random Forest | Default | 94.92% | 98.79% | 13.34% | 94.04% | 92.73% | 6,932 / 1,067 / 206 / 16,842 |
+| Random Forest | Calibrated | 94.48% | 94.53% | 5.61% | 97.29% | 94.46% | 7,550 / 449 / 933 / 16,115 |
+| Histogram gradient boosting | Default | 95.54% | 97.67% | 8.98% | 95.87% | 94.34% | 7,281 / 718 / 398 / 16,650 |
+| Histogram gradient boosting | Calibrated | 94.97% | 94.91% | 4.90% | 97.63% | 95.00% | 7,607 / 392 / 868 / 16,180 |
+
+None of the calibrated candidates retained 95% recall on comparison.
+The prespecified fallback selected gradient boosting at its frozen
+threshold `0.6478775510084671`. Compared with the newly fitted forest's
+calibrated result, it missed 65 fewer attacks and flagged 57 fewer normal
+rows on the same comparison partition.
+
+Comparison score distributions overlap in the tails. Gradient boosting's
+normal median and 95th percentile were 0.00017 and 0.643, while its attack
+median and fifth percentile were 0.99951 and 0.645. Permuting `sttl` gave
+its largest mean balanced-accuracy drop, 0.389 on the 1,024-row diagnostic
+sample. Logistic Regression was most sensitive to `dttl` and `swin`, and
+the forest to `ct_srv_dst`. These rankings depend on the sampled rows,
+feature correlations, and the selected operating points. In particular,
+strong dependence on source TTL warrants checking whether the signal
+transfers beyond this cyber range.
+
+### Frozen final development validation
+
+The selected pipeline SHA-256 is
+`62ba7c74d99e37afceb1243ed7ae1234631c19f23e4da06a7a2bfd4e27941fd4`.
+One scoring pass produced scores for 7,999 normal and 17,048 attack rows.
+The default row applies the prespecified reference rule to those same scores.
+
+| Operating point | Accuracy | Recall | FPR | Precision | Balanced accuracy | Confusion counts |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Default 0.5 | 95.48% | 97.74% | 9.33% | 95.71% | 94.20% | 7,253 / 746 / 386 / 16,662 |
+| Frozen calibrated | 95.11% | 95.32% | 5.35% | 97.43% | 94.99% | 7,571 / 428 / 797 / 16,251 |
+
+The frozen threshold avoided 318 false positives at the cost of 411
+additional missed attacks versus its default decision rule. Its F1 was
+96.37%. The shared score vector yielded ROC AUC 0.99275 and average
+precision 0.99655. The 5% FPR target was missed and the threshold was left
+frozen. This result measures development within one prepared dataset.
+Independent capture validation and live feature parity remain open.
+
+Fit times were 6.10 seconds for Logistic Regression, 28.84 seconds for the
+forest, and 7.48 seconds for gradient boosting. The run took 129.36 seconds
+wall time and 128.14 seconds process CPU time, with about 765 MiB peak
+resident memory. The frozen experimental pipeline is 433,132 bytes. The
+candidate fits emitted no warnings. The recorded run used Python 3.12.3,
+scikit-learn 1.7.2, and the existing [pinned dependencies](../../../ml/requirements-baseline.txt).

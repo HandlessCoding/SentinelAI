@@ -65,6 +65,11 @@ unavailable. A future audit needs prespecified, independently annotated
 captures with both classes across different environments.
 [Offline traffic workflow](LAB_GUIDE.md#triage-recorded-flows-in-sentinelai)
 
+G32 compares experimental models and operating points on group-separated
+subsets of the official UNSW-NB15 training CSV. The results describe
+within-dataset development and leave live flow validation pending.
+[G32 development protocol](research/level-2/LEVEL_2_EXPERIMENTAL_BASELINE.md#g32-unsw-nb15-development-restart)
+
 Further Level 2 work depends on enough independently reviewed benign and
 positive captures, frozen device/session cohorts, and the prespecified
 coverage requirements. Multiclass detection, explanations, additional datasets,
