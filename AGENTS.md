@@ -12,6 +12,17 @@
 - Preserve supported behavior and data compatibility. Consider invalid input, partial failures, retries, and concurrency where they affect correctness.
 - Add focused automated tests for new behavior and regressions. Run relevant tests, type checks, builds, and security checks. Report what ran, the results, and any skipped or unverified behavior.
 
+## Major milestone workflow
+
+Use the installed skills for the applicable stages of major milestones. Get explicit approval before advancing to the next major stage. Keep routine changes proportionate. Use this file, the glossary, approved ADRs, architecture docs, and relevant research as inputs throughout.
+
+1. **Grill With Docs.** Use `grill-with-docs`, `grilling`, and `domain-modeling` to challenge requirements and compare alternatives one important decision at a time. Record agreed decisions in the relevant ADR. Update the glossary when terminology needs clarification.
+2. **To Spec.** Use `to-spec` to describe scope, interfaces, risks, acceptance criteria, and required tests. Use `setup-matt-pocock-skills` to configure the issue tracker before publishing specs or tickets if the tracker setup is pending.
+3. **To Tickets.** Use `to-tickets` to split the approved spec into small, independently verifiable tasks with explicit dependencies.
+4. **Implement with TDD.** Use `implement` and `tdd` for approved tickets. Add focused automated tests and verify the results against the spec.
+5. **Code Review.** Use `code-review` to independently check the implementation against repository standards and the approved spec, including architecture, security, performance, and compatibility.
+6. **Pull Request.** When authorized, present verified changes, test results, and remaining limitations for review. Obtain explicit approval before merging.
+
 ## Security and data handling
 
 - Keep monitoring and capture within the authorized scope. For lab work, verify isolation before collecting traffic and stop if isolation fails. Get explicit approval before connecting to any real external network, widening the monitoring scope, making significant infrastructure changes, or performing destructive operations.
