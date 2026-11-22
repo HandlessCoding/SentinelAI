@@ -6,7 +6,8 @@ test "$(dpkg --print-architecture)" = amd64
 . /etc/os-release
 test "$VERSION_CODENAME" = noble
 test "$(ls /sys/class/net)" = lo
-test "$(wc -l < /proc/net/route)" -eq 1
+awk 'NR > 1 {exit 1}' /proc/net/route
+printf 'Ubuntu %s amd64, loopback only, no IPv4 routes\n' "$VERSION_ID"
 sha256sum /recorded/status /recorded/extended_states
 test "$(grep -c '^Status: install ok installed$' /recorded/status)" -eq 693
 dpkg-query --admindir=/recorded -W -f='${Package}\t${Version}\t${Architecture}\n' apt dpkg
@@ -14,6 +15,7 @@ apt-get --version | head -n 1
 
 mapfile -t roots < /recorded/apt-roots
 work=$(mktemp -d)
+chmod 755 "$work"
 mkdir -p "$work/preferences" "$work/lists/partial" "$work/empty"
 cp /recorded/preferences/* "$work/preferences/"
 export APT_CONFIG="$work/apt.conf"
