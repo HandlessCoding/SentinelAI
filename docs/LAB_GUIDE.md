@@ -123,3 +123,37 @@ requires separate device and capture lineage, sufficient reviewed class
 coverage, and evidence that the feature contract transfers across
 environments. G27's four recordings share one device pair and environment.
 [Prespecified feasibility gates](research/level-2/LEVEL_2_CAPTURE_DATA_STRATEGY.md#feasibility-gates-before-fitting)
+
+## Matched control and label validation
+
+G29 repeats the frozen G27 pilot workload with fresh capture and session
+IDs and the same seed, traffic services, and observation point. Preflight
+checks the powered-off adapter configuration before each run. Both guests
+then check their live routes before the client starts the capture handoff.
+Compare the client and service evidence, packet accounting, and feature
+coverage before expanding the recording plan. [G27 pilot plan](../examples/lab_benign_pilot.json)
+
+`g29-control-01` produced three reviewed benign flows from five transactions.
+Two flows used TCP and one used UDP. Zeek 8.0.11 accounted for all 34 packets
+in the 5,025-byte capture, with zero kernel drops and zero invalid feature
+values. Only the UDP `service` field was missing. There were no unknown or
+positive flows in the control. All three core and rich vectors were distinct
+within the capture. Two core vectors and zero rich vectors matched the G27
+pilot. No PCAP or Zeek-log checksum matched the existing G27 registry. The
+new session shares G27's device pair, physical host, and observation point.
+Offline audit details and checksummed evidence are kept under the ignored
+`data/level2/capture-lab/g29/` directory.
+
+Use `ml.lab_demo` on an isolated sensor to validate `benign`, `attack`, and
+`unknown` handling and exact-vector conflict reporting offline. The
+`attack` fixture is a test annotation on ordinary synthetic UDP packets.
+The G29 fixture produced one row per label and one shared key across all
+three rows. Synthetic captures are excluded from real cohort coverage and
+predictor export.
+
+For reviewed real captures, `ml.lab_capture predictors` emits five explicit
+feature columns from eligible flows. It emits the transport protocol and
+directional IP byte and packet counts. `records` includes label, timestamp,
+capture ID, source, and review details for audit work. Keep identity and
+scenario information in the registry, and keep labels separate from
+predictors. The export does not assign roles or certify a training cohort.
