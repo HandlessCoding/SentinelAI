@@ -1,8 +1,7 @@
 """Add continuous Zeek sources and atomic processing checkpoints."""
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "0003_zeek_streams"
 down_revision = "0002_zeek_traffic"

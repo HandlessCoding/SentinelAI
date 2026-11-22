@@ -86,7 +86,7 @@ describe('CSV analysis', () => {
     expect(await screen.findByRole('heading', { name: 'Record preview' })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Manual JSON' }))
-    expect((screen.getByLabelText('Network records JSON') as HTMLTextAreaElement).value).toBe(draft)
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Network records JSON').value).toBe(draft)
     expect(screen.getByRole('button', { name: 'Preview predictions' })).toBeTruthy()
   })
 
@@ -134,7 +134,7 @@ describe('CSV analysis', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Analyze CSV' }))
 
     await waitFor(() => expect(sends).toHaveLength(2))
-    const progress = screen.getByRole('progressbar', { name: 'Scoring progress' }) as HTMLProgressElement
+    const progress = screen.getByRole<HTMLProgressElement>('progressbar', { name: 'Scoring progress' })
     expect(progress.value).toBe(100)
     finishSecond()
     await screen.findByText('205 of 205 records scored')

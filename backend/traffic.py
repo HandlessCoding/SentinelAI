@@ -1,21 +1,28 @@
 """Read Zeek flows, source health and rule findings from local PostgreSQL."""
 
+import json
 from base64 import b64decode, urlsafe_b64encode
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
-import json
 from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, computed_field, field_serializer, field_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_serializer,
+    field_validator,
+)
 from sqlalchemy import func, select, text, tuple_
 from sqlalchemy.orm import Session, joinedload
 
 from backend.database import get_session
 from backend.models import ZeekCapture, ZeekFlow, ZeekStream
 from backend.zeek_rules import FINDING_EXPLANATIONS, STATE_PATTERN, Protocol
-
 
 router = APIRouter(prefix="/traffic", tags=["Network traffic"])
 Database = Annotated[Session, Depends(get_session)]

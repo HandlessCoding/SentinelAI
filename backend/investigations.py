@@ -12,13 +12,18 @@ from sqlalchemy.orm import Session
 from backend.batch_processing import predict_records, request_digest
 from backend.database import get_session
 from backend.investigation_schemas import (
-    AlertInfo, AlertStatus, AnalysisReceipt, IncidentCreate, IncidentInfo,
-    IncidentUpdate, NoteCreate, NoteInfo,
+    AlertInfo,
+    AlertStatus,
+    AnalysisReceipt,
+    IncidentCreate,
+    IncidentInfo,
+    IncidentUpdate,
+    NoteCreate,
+    NoteInfo,
 )
 from backend.models import Alert, AnalystNote, Incident, PredictionBatch
 from backend.request_limits import JSONRequestRoute
 from backend.schemas import ErrorResponse, PredictRequest
-
 
 router = APIRouter(route_class=JSONRequestRoute)
 Database = Annotated[Session, Depends(get_session)]

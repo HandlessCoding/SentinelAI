@@ -6,7 +6,7 @@ network-flow records with a binary classifier and lets an analyst turn
 suspected attacks into investigations with notes. [UNSW-NB15 dataset](https://research.unsw.edu.au/projects/unsw-nb15-dataset)
 
 [Documentation](docs/README.md) · [Lab guide](docs/LAB_GUIDE.md) ·
-[Research archive](docs/research/README.md) · [Roadmap](docs/ROADMAP.md)
+[Research archive](docs/research/README.md) · [Datasets and citations](docs/DATASETS_AND_CITATIONS.md) · [Roadmap](docs/ROADMAP.md)
 
 ## What Level 1 delivers
 

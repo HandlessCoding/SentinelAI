@@ -1,10 +1,10 @@
 """Local PostgreSQL configuration and request-scoped database sessions."""
 
+import os
+import socket
 from functools import lru_cache
 from ipaddress import ip_address
-import os
 from pathlib import Path
-import socket
 
 from dotenv import dotenv_values
 from sqlalchemy import URL, create_engine

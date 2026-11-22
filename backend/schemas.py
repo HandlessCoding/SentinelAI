@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ml.inference import FEATURE_TYPES
 
-
 MAX_BATCH_SIZE = 100
 example_values = {
     "proto": "tcp", "service": "http", "state": "FIN",

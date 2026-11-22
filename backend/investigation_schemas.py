@@ -8,7 +8,6 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 
 from backend.schemas import MAX_BATCH_SIZE
 
-
 IncidentStatus = Literal["open", "investigating", "resolved"]
 AlertStatus = Literal["unreviewed", "open", "investigating", "resolved"]
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=160, pattern=r"^[^\x00]+$")]

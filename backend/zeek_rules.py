@@ -2,7 +2,6 @@
 
 from typing import Literal, get_args
 
-
 Protocol = Literal["tcp", "udp", "icmp", "unknown_transport"]
 PROTOCOLS = get_args(Protocol)
 STATE_PATTERN = r"^[A-Z0-9_]{1,24}$"

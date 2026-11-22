@@ -42,6 +42,31 @@ for the real Zeek fixture. Set `SENTINELAI_G26_LAB_ROOT`,
 local registries to include recorded checks in the Python command above.
 [Lab procedure](LAB_GUIDE.md#verify-the-sensor-offline)
 
+## G37 verification to implement
+
+[ADR 0002](adr/0002-g37-sensor-local-postgresql.md#hard-acceptance-gates) owns the pilot workload and hard gates. The approved pilot uses guest-side verification after an offline installation rehearsal. Run the browser path separately on a local disposable stack with synthetic input. Schedule sensor-to-dashboard integration after live ingestion, persistence, recovery, and sensor health are verified.
+
+| Acceptance case | Fixture and expected result |
+| --- | --- |
+| Zeek → PostgreSQL → API → dashboard | Start one worker with a fresh ingestion source and migrated disposable PostgreSQL. Append deterministic Zeek JSON records with known UID, first-packet timestamp, observation point, and ordering. Use the synthetic API startup fixture and a real browser on the same-origin path. Assert one committed row per expected key, matching API and Traffic detail data, correct source and checkpoint health, and `unknown` reviewed ground truth. Insert another complete record between pages. Assert no missing or repeated rows in the pinned view in either direction, and verify that Resume live reveals the new record. |
+| Rotation and recovery | On Linux, coordinate writes, worker reads, and transaction failure with explicit test barriers. Allow a partial line to become complete, retain the closed generation as `conn.log.1`, and append to the successor. Stop and restart the worker at controlled handoff points. Assert the committed checkpoint remains behind uncommitted rows, drains both generations exactly once, and acknowledges the original file identity before it is removed. A missing archive must report a blocked state until restored. Confirm duplicate replay advances the checkpoint and duplicate count without inserting another flow. Retain the open-descriptor rename regression. |
+| Browser analyst workflow | With a real local API and disposable database, score synthetic records, save suspected alerts, create an incident, and retrieve it with its note after refresh. Hold a response until the analyst navigates away and verify the current page stays selected. Simulate a stale incident link and verify that the valid incident list remains available. |
+| CSV retry and historical receipts | Use a fixed CSV containing a batch split by the JSON byte cap. Commit one batch and drop its response at a local test adapter. Retry the same upload and assert stable keys, exactly one stored receipt per committed batch, unchanged alert IDs, and completion of the remaining records. Exercise a legacy receipt from an oversized original row window, plus an altered payload at a reused key returning 409. Verify the final browser result and persistent state. |
+| Accessibility and keyboard | Run axe in the browser for Traffic, CSV, Alerts, and Incidents, with zero unresolved serious or critical violations in these flows. Use Tab, Shift+Tab, Enter, and Escape to verify skip navigation, menu operation, visible focus, labels, status announcements, and focus return from detail views. Exercise desktop and a narrow viewport. |
+
+Use synthetic fixtures, a database created for the test, explicit waits on committed observations, and controlled response failures. Save expected keys and counts, migration revision, test/browser versions, sanitized logs, and timing traces. Existing Python and component tests cover individual boundaries. These proposed vertical and browser tests would verify their integration. [Existing Python integration cases](../tests/test_zeek_stream.py) · [Existing browser-component cases](../frontend/src/reliability.test.tsx)
+
+### Reproducible benchmark baseline
+
+- Pin the commit, migration revision, runtime and PostgreSQL versions, host resource limits, input seed, ingestion options, page sizes, and table cardinalities. Record warm-up, startup, and steady-state windows. Run at least five matched iterations on the same runner configuration, each with isolated database state.
+- Measure sustained committed flows per second and backlog growth at a fixed input rate. Record p50 and p95 from complete-line availability to fresh committed reads, and separately to API visibility. Use monotonic clocks and independent readers. Keep the ADR's conservative, per-row timing method for the live pilot.
+- Measure p50 and p95 query latency for summary, filtered first and subsequent pages in both sort orders, and flow details. Run at fixed sizes such as 10,000 and 100,000 synthetic rows and page sizes 25 and 100. Retain sanitized `EXPLAIN (ANALYZE, BUFFERS)` plans from the disposable database and record scans, reads, and sorting. Keep browser render timing distinct from query latency.
+- Record worker and PostgreSQL CPU and peak RSS, I/O, disk growth, and maximum backlog by workload. Start with a report-only flag when the median of five matched runs shows more than 20% degradation in throughput, latency, or resource use relative to a pinned baseline. Reproduce and attribute regressions before setting a CI budget. Live pilot resource and recovery limits come from the ADR.
+
+### Independent Security review
+
+Use the Security perspective for changes to input validation, authentication or authorization, deserialization, artifact identity, database or filesystem access, ingestion, dependencies, secrets, or isolation. Review the authorized observation boundary, effective database destination, migration privileges, untrusted log and CSV handling, retry integrity, and evidence redaction. Cite the affected interface, realistic reachability, impact, and a regression test or other verification for each finding. Use disposable local fixtures and honor the [human-first review gate](../AGENTS.md#human-first-review-gate).
+
 ## Recover a saved G32.2 report
 
 Use a separate checkout at `72468836e15d9224fbbeb251269a8cb98eb33cd0` to

@@ -181,13 +181,13 @@ describe('recoverable failures', () => {
   it('preserves the manual draft when the API rejects the payload size', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => json({ detail: 'JSON request bodies must be at most 2 MiB.' }, 413)))
     render(<Analyze refresh={vi.fn()} />)
-    const input = screen.getByLabelText('Network records JSON') as HTMLTextAreaElement
+    const input = screen.getByLabelText<HTMLTextAreaElement>('Network records JSON')
     const draft = '{"records":[{"proto":"tcp"}]}'
     fireEvent.change(input, { target: { value: draft } })
     fireEvent.click(screen.getByRole('button', { name: 'Preview predictions' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(/at most 2 MiB/)
     expect(input.value).toBe(draft)
-    expect((screen.getByRole('button', { name: 'Preview predictions' }) as HTMLButtonElement).disabled).toBe(false)
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Preview predictions' }).disabled).toBe(false)
   })
 
   it('rejects oversized manual files before reading them and malformed inputs before posting', async () => {

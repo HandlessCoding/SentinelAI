@@ -13,7 +13,6 @@ from backend.schemas import (
 )
 from ml.inference import FEATURE_TYPES
 
-
 router = APIRouter(route_class=JSONRequestRoute)
 
 

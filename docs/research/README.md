@@ -4,6 +4,7 @@ These records preserve the methodology, results, limitations, and decisions
 at each milestone. Their setup commands describe those runs. Use the
 [current lab guide](../LAB_GUIDE.md) for a new capture and the
 [documentation index](../README.md) for current application setup.
+The [dataset citation catalog](../DATASETS_AND_CITATIONS.md) records exact releases, research roles, attribution, and reuse terms.
 
 ## Level 1 development
 

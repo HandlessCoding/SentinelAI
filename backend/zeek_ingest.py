@@ -1,11 +1,11 @@
 """Import one locally registered Zeek capture into PostgreSQL without network collection."""
 
 import argparse
+import json
+import re
 from hashlib import sha256
 from ipaddress import ip_address
-import json
 from pathlib import Path
-import re
 
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
@@ -17,7 +17,6 @@ from backend.zeek_rules import PROTOCOLS, STATE_PATTERN, rule_for_flow
 from ml.lab_capture import capture_rows
 from ml.lab_registry import DEFAULT_ROOT, load_verified_capture
 from ml.lab_zeek import COUNTERS
-
 
 MAX_ARTIFACT_BYTES = 64 * 1024**2
 MAX_ROWS = 10_000
