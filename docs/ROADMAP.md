@@ -52,9 +52,9 @@ verified independent recording. One matched benign pilot can measure feature
 portability for this workload. It cannot establish detection performance or
 false-positive rates. [G27 baseline](research/lab/LEVEL_2_G27_BENIGN_COLLECTION.md#verified-recordings)
 
-G29 uses the existing isolated lab for a matched benign control and offline
-label-validation fixtures. A real positive cohort still needs independently
-annotated captures with verified provenance and explicit usage permission.
+G29 has one verified benign control and remains incomplete. The real positive
+pilot is pending an authorized capture with independently reviewed client,
+service, and packet evidence. Keep synthetic fixtures outside cohort coverage.
 [G29 checks](LAB_GUIDE.md#matched-control-and-label-validation)
 
 Further Level 2 work depends on enough independently reviewed benign and

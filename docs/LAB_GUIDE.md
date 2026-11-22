@@ -151,6 +151,19 @@ The G29 fixture produced one row per label and one shared key across all
 three rows. Synthetic captures are excluded from real cohort coverage and
 predictor export.
 
+**G29 remains incomplete.** The registry contains one real session, the
+matched benign control. There is no real capture of reconnaissance or
+unsuccessful authentication to validate, so a benign-versus-attack comparison
+and pilot expansion are pending.
+
+For offline verification of an authorized positive recording, retain the
+original PCAP, capture provenance, recorded client actions, service-side
+observations, UTC bounds, and an independent review. The reviewer must match
+the action and outcome to the packet evidence for every flow in a labeled
+window. Keep the window `unknown` when the evidence is incomplete or cannot
+rule out unrelated flows. Process the PCAP with the same offline Zeek settings
+and apply the existing capture quality and overlap checks before expanding.
+
 For reviewed real captures, `ml.lab_capture predictors` emits five explicit
 feature columns from eligible flows. It emits the transport protocol and
 directional IP byte and packet counts. `records` includes label, timestamp,
