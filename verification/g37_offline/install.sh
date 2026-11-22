@@ -24,6 +24,6 @@ export PIP_CONFIG_FILE=/dev/null PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DI
   --only-binary ':all:' --require-hashes -r /stage/wheels.lock
 /tmp/g37-venv/bin/python -m pip check
 pg_lsclusters --no-header
-pg_conftool 16 main set listen_addresses 127.0.0.1
+printf "listen_addresses = '127.0.0.1'\n" > /etc/postgresql/16/main/conf.d/g37-loopback.conf
 cd /sentinelai
 PYTHONPATH=/sentinelai /tmp/g37-venv/bin/python -B /harness/smoke.py

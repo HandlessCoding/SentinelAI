@@ -24,8 +24,8 @@ jobs:
           git archive "$source_sha" backend ml migrations verification/g37.py alembic.ini |
             tar -x -C "$RUNNER_TEMP/g37-source"
           python3 verification/g37_offline/stage.py "$RUNNER_TEMP/g37-stage"
-          docker pull --platform linux/amd64 ubuntu:24.04
-          image=$(docker image inspect ubuntu:24.04 --format '{{index .RepoDigests 0}}')
+          image=ubuntu@sha256:9c7f200c07e3d4a03e7249d2c16bf66a51120fb876aa2242cf31451412543289
+          docker pull --platform linux/amd64 "$image"
           printf 'G37_CONTAINER_IMAGE %s\n' "$image"
           printf 'G37_IMAGE=%s\n' "$image" >> "$GITHUB_ENV"
           docker run --rm --pull never --platform linux/amd64 \
