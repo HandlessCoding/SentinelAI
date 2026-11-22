@@ -28,8 +28,9 @@ Zeek-native flow features with pinned capture and labeling evidence. G27 verifie
 four benign sessions, 266 packets, and 16 labeled flows across one VM pair.
 G30 can import verified Zeek recordings into the dashboard's offline
 **Network Traffic** view. Rule findings, reviewed capture labels, and the
-Level 1 model's suspected-attack alerts appear separately. Independent device
-and environment validation is still needed before fitting a Level 2 model.
+Level 1 model's suspected-attack alerts appear separately. G32 uses a
+four-way UNSW-NB15 development split for experimental ML. Independent device
+and environment validation remains pending for live flow performance.
 [G27 results](docs/research/lab/LEVEL_2_G27_BENIGN_COLLECTION.md) ·
 [Offline import](docs/DATABASE_SETUP.md#import-reviewed-zeek-flows-offline)
 
