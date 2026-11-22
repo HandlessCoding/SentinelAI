@@ -57,6 +57,14 @@ with zero real attack flows. A real positive pilot needs independently reviewed 
 service, and packet evidence. Keep synthetic fixtures outside cohort coverage.
 [G29 checks](LAB_GUIDE.md#matched-control-and-label-validation)
 
+G30 adds offline import and dashboard triage for reviewed Zeek captures.
+The G29 control imports as three reviewed benign flows, with zero rule
+findings. This checks the workflow on one session. A practical next milestone
+is to audit the rules on a prespecified set of authorized, independently
+annotated offline captures spanning different environments. Report reviewed
+coverage and rule outcomes per capture before making performance claims.
+[Offline traffic workflow](LAB_GUIDE.md#triage-recorded-flows-in-sentinelai)
+
 Further Level 2 work depends on enough independently reviewed benign and
 positive captures, frozen device/session cohorts, and the prespecified
 coverage requirements. Multiclass detection, explanations, additional datasets,

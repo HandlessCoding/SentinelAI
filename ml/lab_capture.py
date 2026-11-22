@@ -21,11 +21,11 @@ from ml.level2_audit_storage import ExactGroupCounter
 LABELS = {"benign": 0, "attack": 1, "unknown": None}
 
 
-def capture_rows(root, manifest, windows):
+def capture_rows(root, manifest, windows, *, max_log_bytes=None):
     spec = manifest["capture"]
     labeler = WindowLabels(windows, time_bounds(spec))
     conn = lab_path(root, spec["conn_log"])
-    for flow in read_flows(conn, manifest["sha256"]["conn_log"]):
+    for flow in read_flows(conn, manifest["sha256"]["conn_log"], max_bytes=max_log_bytes):
         yield flow, labeler.classify(flow)
 
 

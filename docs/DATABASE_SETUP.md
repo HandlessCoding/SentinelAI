@@ -37,7 +37,7 @@ Run these commands from the repository root in PowerShell:
 
 The commands install the pinned dependencies, migrate the development
 database, print its applied revision, and serve the API locally. The
-expected initial revision is `0001_alert_investigations`. Port 8001 matches
+expected head revision is `0002_zeek_traffic`. Port 8001 matches
 the dashboard's local proxy target. Open
 [Swagger UI](http://127.0.0.1:8001/docs) to explore the routes.
 
@@ -78,6 +78,37 @@ submissions. [SQLAlchemy PostgreSQL conflict handling](https://docs.sqlalchemy.o
 Malformed JSON returns 400, invalid inputs return 422, and missing alerts
 or incidents return 404. A conflicting alert assignment returns 409.
 Database failures return a generic 503, and logs report the exception class.
+
+## Import reviewed Zeek flows offline
+
+Apply `alembic upgrade head` as shown above. From the repository root, import
+one capture from the [local registry](LAB_GUIDE.md#register-and-review-evidence).
+This example uses the authorized G29 capture if it is present on this machine.
+
+```powershell
+& .\.venv\Scripts\python.exe -B -m backend.zeek_ingest --root data/level2/capture-lab/g29 g29-control-01
+```
+
+The importer verifies the registry hashes, original PCAP, offline Zeek receipt,
+and connection log. It accepts up to 10,000 flows, 64 MiB each for the PCAP and
+connection log, and 32 evidence files up to 1 MiB each. Synthetic manifests,
+invalid present fields, and oversized captures are rejected before writing.
+Missing optional fields stay null. A retry of the same registered capture
+returns `replayed: true`. Reusing its ID or source bytes with different
+provenance is rejected. Concurrent imports share the same uniqueness checks.
+The capture and all its flows commit together.
+
+| Endpoint | Behavior |
+|---|---|
+| `GET /traffic/summary` | Count imported flows, rule findings, and flows by protocol |
+| `GET /traffic/flows` | Filter by `capture_id`, `protocol`, `connection_state`, or `has_finding`. Page with `limit` (1–100) and `offset` (0–100,000). |
+| `GET /traffic/flows/{flow_id}` | Read exact UTC timestamp, endpoints, counters, rule explanation, reviewed label, and capture provenance |
+
+Timestamps retain nanosecond precision. The detail API returns counter and
+duration values as decimal strings to preserve their full precision in the
+browser. IP-level byte counts and payload byte estimates stay separate.
+Import stays a local command. Raw PCAPs and evidence files stay on D:.
+[Zeek connection fields](https://docs.zeek.org/en/v8.0.11/scripts/base/protocols/conn/main.zeek.html#type-Conn::Info)
 
 ## Demonstrate the workflow
 

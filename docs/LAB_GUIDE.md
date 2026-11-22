@@ -170,3 +170,14 @@ directional IP byte and packet counts. `records` includes label, timestamp,
 capture ID, source, and review details for audit work. Keep identity and
 scenario information in the registry, and keep labels separate from
 predictors. The export does not assign roles or certify a training cohort.
+
+## Triage recorded flows in SentinelAI
+
+G30 imports a verified Zeek JSON `conn.log` into the offline **Network
+Traffic** dashboard. Two versioned rules flag TCP `S0` (no response observed)
+and `REJ` (connection rejected). Service downtime, filtering, or incomplete
+visibility can produce the same states. A rule finding prompts review.
+The independently reviewed capture label stays separate, as do the Level 1
+model's suspected-attack alerts. The importer collects no traffic.
+[Offline import and API](DATABASE_SETUP.md#import-reviewed-zeek-flows-offline) ·
+[Zeek state definitions](https://docs.zeek.org/en/v8.0.11/scripts/base/protocols/conn/main.zeek.html#type-Conn::Info)

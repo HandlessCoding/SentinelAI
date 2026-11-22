@@ -26,9 +26,12 @@ suspected attacks into investigations with notes. [UNSW-NB15 dataset](https://re
 The controlled lab verifies isolation, records authorized traffic, and extracts
 Zeek-native flow features with pinned capture and labeling evidence. G27 verified
 four benign sessions, 266 packets, and 16 labeled flows across one VM pair.
-The lab is experimental and runs separately from the dashboard. Independent
-device and environment validation is still needed before fitting a Level 2
-model. [G27 results](docs/research/lab/LEVEL_2_G27_BENIGN_COLLECTION.md)
+G30 can import verified Zeek recordings into the dashboard's offline
+**Network Traffic** view. Rule findings, reviewed capture labels, and the
+Level 1 model's suspected-attack alerts appear separately. Independent device
+and environment validation is still needed before fitting a Level 2 model.
+[G27 results](docs/research/lab/LEVEL_2_G27_BENIGN_COLLECTION.md) ·
+[Offline import](docs/DATABASE_SETUP.md#import-reviewed-zeek-flows-offline)
 
 ## Architecture and technologies
 
@@ -201,4 +204,4 @@ are Git-ignored. [Test scope](docs/RELIABILITY_TESTING.md) ·
 | [Technical report](docs/TECHNICAL_REPORT.md) | Research, methods, implementation, results, and limitations |
 | [Architecture](docs/ARCHITECTURE.md) | Component diagrams and analyst workflow |
 | [Presentation and demo](docs/PRESENTATION_AND_DEMO.md) | Suggested talk, live walkthrough, and fallback |
-| [Project status and roadmap](docs/ROADMAP.md) | Implemented capabilities, proposed G28 work, and planned Level 2 features |
+| [Project status and roadmap](docs/ROADMAP.md) | Implemented capabilities, deferred G28 validation, and planned Level 2 work |

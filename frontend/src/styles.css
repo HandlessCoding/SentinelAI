@@ -89,8 +89,14 @@ main { margin: 0 auto; max-width: 1530px; padding: 30px 30px 44px; }
 .panel-heading { padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .panel-heading h2 { font-size: 1.04rem; letter-spacing: -.012em; }
 .panel-heading p { color: var(--muted); font-size: .84rem; margin-top: 5px; line-height: 1.4; }
+.traffic-protocols { list-style: none; padding: 0; margin: 6px 0 0; }
+.traffic-protocols li { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; }
+.traffic-finding { color: var(--amber); font-weight: 600; }
+.traffic-detail section p { margin-top: 8px; line-height: 1.4; }
+.traffic-detail dd { overflow-wrap: anywhere; }
 
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 17px; }
+.traffic-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .metric { padding: 15px 17px 18px; }
 .metric-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .88rem; font-weight: 620; }
 .metric-icon { display: grid; place-items: center; flex: none; width: 35px; height: 35px; border-radius: 9px; border: 1px solid currentColor; }

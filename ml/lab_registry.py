@@ -67,16 +67,21 @@ def write_new_object(path, obj):
         stream.write(content)
 
 
-def digest(path, *, pcap=False):
+def digest(path, *, pcap=False, max_bytes=None):
     """Hash one file and reject source changes observed during the read."""
     with path.open("rb") as stream:
-        before = file_identity(fstat(stream.fileno()))
+        stat = fstat(stream.fileno())
+        if max_bytes is not None and stat.st_size > max_bytes:
+            raise ValueError("capture artifact exceeds the import size limit")
+        before = file_identity(stat)
         if pcap:
             if stream.read(4) not in PCAP_HEADERS:
                 raise ValueError("expected a PCAP or PCAPNG file header")
             stream.seek(0)
         result = sha256()
         for block in iter(lambda: stream.read(1024**2), b""):
+            if max_bytes is not None and stream.tell() > max_bytes:
+                raise ValueError("capture artifact exceeds the import size limit")
             result.update(block)
         if before != file_identity(fstat(stream.fileno())) or before != file_identity(path.stat()):
             raise ValueError("source file changed while hashing")
@@ -153,7 +158,7 @@ def validate_spec(spec):
     return windows
 
 
-def verified_hashes(root, spec):
+def verified_hashes(root, spec, *, max_artifact_bytes=None):
     paths = {"pcap": spec["pcap"], "conn_log": spec["conn_log"]}
     paths.update({name: spec[name] for name in ("authorization", "zeek_receipt") if name in spec})
     resolved = {name: lab_path(root, path) for name, path in paths.items()}
@@ -161,14 +166,19 @@ def verified_hashes(root, spec):
         raise ValueError("capture, log, permission record, and receipt must be distinct files")
     evidence_hashes = {}
     names = dict.fromkeys([*spec.get("evidence_files", []), *(window["evidence"] for window in spec["windows"])])
+    if max_artifact_bytes is not None and len(names) > 32:
+        raise ValueError("capture exceeds the import limit of 32 evidence files")
+    max_metadata = min(max_artifact_bytes, 1024**2) if max_artifact_bytes is not None else None
     for name in names:
         path = lab_path(root, name)
         if path in resolved.values() or not path.is_file() or path.stat().st_size == 0:
             raise ValueError("label evidence must be a separate nonempty file")
-        evidence_hashes[name] = digest(path)
+        evidence_hashes[name] = digest(path, max_bytes=max_metadata)
     if "authorization" in resolved and resolved["authorization"].stat().st_size == 0:
         raise ValueError("permission record is empty")
-    hashes = {name: digest(path, pcap=name == "pcap") for name, path in resolved.items()}
+    hashes = {name: digest(path, pcap=name == "pcap",
+                           max_bytes=max_artifact_bytes if name in {"pcap", "conn_log"} else max_metadata)
+              for name, path in resolved.items()}
     if "zeek_receipt" in resolved:
         receipt = read_object(resolved["zeek_receipt"])
         if (receipt.get("version") != 1 or receipt.get("settings") != list(ZEEK_SETTINGS)
@@ -194,10 +204,11 @@ def register(root, spec):
     return path
 
 
-def load_verified(root, capture_id):
+def load_verified(root, capture_id, *, max_artifact_bytes=None):
     manifest = read_object(manifest_path(root, capture_id))
     spec = manifest["capture"]
     windows = validate_spec(spec)
-    if spec["capture_id"] != capture_id or manifest["sha256"] != verified_hashes(root, spec):
+    if (spec["capture_id"] != capture_id
+            or manifest["sha256"] != verified_hashes(root, spec, max_artifact_bytes=max_artifact_bytes)):
         raise ValueError(f"{capture_id} manifest or artifact checksum mismatch")
     return manifest, windows
