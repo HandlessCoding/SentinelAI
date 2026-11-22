@@ -19,6 +19,7 @@ from backend.database import database_url, get_session
 from backend.main import create_app
 from backend.models import Alert, AnalystNote, Incident, PredictionBatch
 from ml.inference import read_prediction_csv
+from support import requires_local_model
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -93,6 +94,7 @@ class PostgreSQLInvestigationsTests(PostgreSQLSchemaTestCase):
         self.migrate(command.upgrade, "head")
         self.assertEqual(set(inspect(self.engine).get_table_names()), expected)
 
+    @requires_local_model
     def test_saved_model_workflow_persists_across_app_lifespans(self):
         records = list(read_prediction_csv(ROOT / "examples" / "unsw_nb15_inference.csv"))
         with self.make_client() as client:

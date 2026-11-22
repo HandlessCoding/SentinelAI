@@ -14,6 +14,7 @@ from backend.database import database_url, get_session
 from backend.main import create_app
 from backend.models import Alert, AnalystNote, Incident, PredictionBatch
 from ml.inference import ArtifactError, load_model
+from support import requires_local_model
 from test_investigations import PostgreSQLSchemaTestCase
 
 
@@ -29,6 +30,7 @@ def preview_synthetic_csv(client):
 
 
 class FullCSVWorkflowTests(PostgreSQLSchemaTestCase):
+    @requires_local_model
     def test_csv_to_investigation_persists_and_replays_after_startup(self):
         with self.make_client() as client:
             preview = preview_synthetic_csv(client)
@@ -90,6 +92,7 @@ class FullCSVWorkflowTests(PostgreSQLSchemaTestCase):
 
 
 class DependencyOutageTests(unittest.TestCase):
+    @requires_local_model
     def test_database_connection_refusal_keeps_scoring_available(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as reserved:
             # Reserve a local port without listening. Leave the actual service running.

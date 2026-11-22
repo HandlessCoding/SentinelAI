@@ -59,10 +59,10 @@ service, and packet evidence. Keep synthetic fixtures outside cohort coverage.
 
 G30 adds offline import and dashboard triage for reviewed Zeek captures.
 The G29 control imports as three reviewed benign flows, with zero rule
-findings. This checks the workflow on one session. A practical next milestone
-is to audit the rules on a prespecified set of authorized, independently
-annotated offline captures spanning different environments. Report reviewed
-coverage and rule outcomes per capture before making performance claims.
+findings. G31 audits five G27 and G29 sessions and adds GitHub regression
+checks. Reviewed positive coverage and independent environments are still
+unavailable. A future audit needs prespecified, independently annotated
+captures with both classes across different environments.
 [Offline traffic workflow](LAB_GUIDE.md#triage-recorded-flows-in-sentinelai)
 
 Further Level 2 work depends on enough independently reviewed benign and
@@ -74,6 +74,6 @@ the dashboard. [Capture evaluation gates](research/level-2/LEVEL_2_CAPTURE_DATA_
 
 ## Engineering follow-up
 
-Start with a synthetic smoke job in CI and agree on a repository license.
+Agree on a repository license.
 Stable alert pagination and cross-platform dependency locking can follow
 as separately verified changes. [Engineering review](G27_5_ENGINEERING_REVIEW.md)

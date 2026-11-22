@@ -181,3 +181,41 @@ The independently reviewed capture label stays separate, as do the Level 1
 model's suspected-attack alerts. The importer collects no traffic.
 [Offline import and API](DATABASE_SETUP.md#import-reviewed-zeek-flows-offline) ·
 [Zeek state definitions](https://docs.zeek.org/en/v8.0.11/scripts/base/protocols/conn/main.zeek.html#type-Conn::Info)
+
+## Audit rule findings against reviewed labels
+
+The read-only audit reruns the two versioned rules on explicitly named,
+checksum-verified captures. It scores reviewed TCP flows with a recognized
+Zeek state. Unknown labels, reviewed rows outside rule scope, and synthetic
+fixtures receive separate coverage counts. The report uses JSON `null` for
+precision without findings, recall without reviewed positives, and
+false-positive rate without reviewed negatives. The same capture contributes
+to every participating device's coverage, so device totals overlap.
+
+```powershell
+$g27 = 'data/level2/capture-lab/g27'
+$g29 = 'data/level2/capture-lab/g29'
+& .\.venv\Scripts\python.exe -B -m ml.evaluate_zeek_rules `
+  --capture $g27 g27-pilot-02 --capture $g27 g27-expand-02 `
+  --capture $g27 g27-expand-03 --capture $g27 g27-expand-04 `
+  --capture $g29 g29-control-01
+```
+
+The G31 audit reverified 15 original client, service, and recorder files.
+It evaluated five sessions from the same two guests and one observation
+point.
+
+| Capture | Reviewed benign | Eligible TCP | Excluded UDP | Findings |
+| --- | ---: | ---: | ---: | ---: |
+| `g27-pilot-02` | 3 | 2 | 1 | 0 |
+| `g27-expand-02` | 4 | 3 | 1 | 0 |
+| `g27-expand-03` | 5 | 3 | 2 | 0 |
+| `g27-expand-04` | 4 | 3 | 1 | 0 |
+| `g29-control-01` | 3 | 2 | 1 | 0 |
+
+Overall, TP, FP, and FN were zero and TN was 13. The observed false-positive
+proportion was 0/13 on this control sample. Precision, recall, and
+positive-class evaluation were unavailable. The cohort contained no reviewed
+attacks, unknown labels, or synthetic rows. Five sessions from one lab leave
+general false-alarm rates and cross-environment performance unmeasured.
+G28 remains deferred, and G29 live attack collection remains blocked.

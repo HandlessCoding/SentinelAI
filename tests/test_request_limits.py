@@ -105,7 +105,9 @@ class StreamedRequestLimitTests(unittest.IsolatedAsyncioTestCase):
 class LocalHostGuardTests(unittest.TestCase):
     def test_module_and_factory_accept_loopback_and_reject_other_hosts(self):
         for application in (app, create_app(Mock())):
-            with TestClient(application, base_url="http://127.0.0.1") as client:
-                self.assertEqual(client.get("/health").status_code, 200)
-                self.assertEqual(client.get("/health", headers={"Host": "localhost:5173"}).status_code, 200)
-                self.assertEqual(client.get("/health", headers={"Host": "example.invalid"}).status_code, 400)
+            # Exercise request middleware without starting the prediction model.
+            client = TestClient(application, base_url="http://127.0.0.1")
+            self.addCleanup(client.close)
+            self.assertEqual(client.get("/health").status_code, 200)
+            self.assertEqual(client.get("/health", headers={"Host": "localhost:5173"}).status_code, 200)
+            self.assertEqual(client.get("/health", headers={"Host": "example.invalid"}).status_code, 400)

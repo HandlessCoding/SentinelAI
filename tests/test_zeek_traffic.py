@@ -18,12 +18,14 @@ from ml.lab_registry import ZEEK_SETTINGS, digest, read_object, register, write_
 from test_investigations import PostgreSQLSchemaTestCase
 
 
-def stand_in_capture(root, *, invalid_port=False):
+def stand_in_capture(root, *, invalid_port=False, environment_id=None):
     """Build a stand-in receipt and registry only inside an isolated test."""
     demo(root)
     spec = read_object(root / "capture-draft.json")
     spec.update(capture_id="test-reviewed", source="authorized_lab", conn_log="reviewed.jsonl",
                 zeek_receipt="receipt.json", authorization="permission.json")
+    if environment_id is not None:
+        spec["environment_id"] = environment_id
     spec["windows"] = spec["windows"][:1]
     spec["windows"][0]["evidence_kind"] = "independent_annotation"
     source = (root / "fixture-conn.jsonl").read_text(encoding="utf-8")
@@ -105,6 +107,10 @@ class ZeekTrafficTests(PostgreSQLSchemaTestCase):
         register(self.root, duplicate)
         with self.assertRaisesRegex(ValueError, "already imported"):
             self.ingest(duplicate["capture_id"])
+        conflicting = self.root.parent / "different-provenance"
+        stand_in_capture(conflicting, environment_id="different-fixture-environment")
+        with self.assertRaisesRegex(ValueError, "different provenance"):
+            self.ingest(spec["capture_id"], conflicting)
         self.assertEqual(self.count(ZeekCapture), 1)
         self.assertEqual(self.count(ZeekFlow), 3)
 
