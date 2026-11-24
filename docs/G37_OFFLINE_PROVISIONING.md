@@ -1,6 +1,82 @@
-# G37 offline provisioning preparation
+# G37 offline provisioning and development closeout
 
-**Status.** The disposable installation and exact sensor-baseline simulation are separate verification results. ISO construction requires approval of the exact inputs. [Approved procedure and pilot gates](adr/0002-g37-sensor-local-postgresql.md) · [Disposable baseline manifest](../examples/g37_t4_verified_dependencies.json) · [Proposed sensor transaction](../examples/g37_t4_sensor_transaction.json) · [APT simulation transcript](research/lab/G37_T4_SENSOR_APT_SIMULATION.txt)
+## Demonstrated on SentinelAI-Ubuntu-Final
+
+The archived guest result identifies VM `ffacb360-9283-4210-ab9a-3f9c217907ca`
+and development disk `a3027b9b-9faf-444a-9cad-aeac047a401a`. The checks were
+performed offline with all eight VirtualBox adapters disabled. The completed
+run used v3 for package installation and a separate application resume after
+a mount-directory permissions issue. During repository cleanup the host
+rechecked VM configuration and ISO digests with both guests powered off.
+
+| Check | Recorded result |
+| --- | --- |
+| Offline APT | v2 stopped at the removal guard. Its newer Python standard library lacked the matching `libpython3.12t64` package. v3 supplied it. Guest simulation selected five upgrades and 15 new packages with zero removals or downgrades. Its dpkg state was unchanged by simulation. The installed entry count rose from 695 to 710. |
+| PostgreSQL | Server package `16.15-0ubuntu0.24.04.1`. The application database query passed. |
+| Zeek | Core package `1:8.0.11-0`. An offline Zeek initialization check passed. |
+| Python | CPython 3.12.3, Ubuntu package `3.12.3-1ubuntu0.17`. The offline application resume completed using the guest virtual environment. |
+| Migrations and API | Alembic reached `0004_zeek_browsing`. Backend health reported `ok` after the application resume. |
+| Synthetic ingestion | The worker committed a synthetic flow. The flow and checkpoint survived a PostgreSQL restart. |
+| Duplicate replay | After worker restart and replay, the worker retained one flow, counted one duplicate, advanced the checkpoint to byte 160 and drained the backlog to zero. |
+
+The local evidence directory is
+`artifacts/sentinelai-final-development/apt-removal-investigation-v1/`.
+It holds `final-guest-results.json`, `final-guest-checks.png`,
+`backend-completion.png`, `live-apt-status-proof.png`, the dependency plan,
+and the complete v3 and v4 media manifests. These records describe a
+development smoke. Live packet capture, native Zeek-to-worker handoff,
+detection quality, live sensor capacity, and recovery from the backup
+remain unverified. [Pilot acceptance criteria](adr/0002-g37-sensor-local-postgresql.md)
+
+## Offline media retained
+
+| Media | SHA-256 | Verification |
+| --- | --- | --- |
+| `sentinelai-offline-install-v3.iso` | `3f6e0266eed065627e9bff18a3545e6fdc72bbb887a909b1922076a3d87f1162` | Guest APT and resumed runtime demonstrated. Both VM optical configurations refer to this DVD. |
+| `sentinelai-offline-install-v4.iso` | `8b076c15f28c87b11a481263ea26a689d8bb41eecd07de48fa6225e1fba3a9b1` | Sealed media independently read and verified. Same APT transaction as v3, with a mount-directory permission fix. A fresh end-to-end v4 installation is unverified. |
+
+Keep the authenticated Ubuntu Server 24.04.5 LTS installer and its signature
+records alongside the application media. The pinned T4 sensor candidate and
+its provenance are separate research evidence.
+
+## VM setup retrospective
+
+1. **Keep the isolation and dependency checks.** VirtualBox supplied NAT
+   when an adapter section was omitted. Verify adapter settings on the VM
+   itself. The APT removal guard protected the guest from a real partial
+   Python upgrade. Simulate against the actual target, then verify the
+   package transaction, migration, and runtime.
+2. **Use ordinary VM operations for daily development.** Rehearsal launchers
+   stopped at PowerShell policy, CRLF parsing, VBox process-count assumptions,
+   and timestamp precision changes. Use VirtualBox Manager, one development
+   VM and a recovery copy. Add automation when it addresses a repeatable
+   failure with a testable impact.
+3. **Keep evidence with the exact artifact.** Distinguish a package simulation,
+   a completed guest run, and a sealed replacement image. Preserve the
+   decisive receipts and hashes. The [Ubuntu guide](UBUNTU_DEVELOPMENT.md)
+   owns daily setup, and the [roadmap](ROADMAP.md) owns milestone status.
+
+## Historical T5 sensor rehearsals
+
+The attempts below exercised the candidate from the G26 sensor baseline.
+The development smoke above ran on a different Ubuntu package baseline.
+
+| Attempt | Recorded result |
+| --- | --- |
+| 01 | Installed the exact candidate APT transaction and ten-wheel Python environment. PostgreSQL started on loopback. A Psycopg SQL placeholder error stopped privilege verification before Zeek initialization and ingestion. VirtualBox rewrote the original sensor's settings backup. |
+| 02 | Preflight found a default NAT adapter on a powered-off clone. No guest boot or ISO attachment followed. |
+| 03 | PowerShell execution policy stopped the launcher before VM commands ran. |
+| 04 | The disk was independent and all adapters were disabled. The CRLF disk readback tripped the parser. Later continuation receipts recorded parser and timestamp checks. They did not establish a completed guest rehearsal. |
+| Lifecycle fixtures | A process-count guard stopped the second startup experiment after VirtualBox exposed three frontend processes. Fixture startup and shutdown were observed. |
+
+The rehearsal launchers and their VM, disk, snapshot, and checkpoint IDs
+apply to those attempts. The local archive
+`artifacts/sentinelai-final-development/g37-t5-historical-evidence.zip`
+preserves the original reports, receipts, and scripts. Its accompanying CSV
+records the original paths and file hashes. The sensor pilot remains pending.
+[Approved pilot criteria](adr/0002-g37-sensor-local-postgresql.md)
+
+## Historical T4 sensor provisioning
 
 ## Verified inventory
 
@@ -14,24 +90,26 @@
 
 VirtualBox supplied the configuration and the active VDI chain was read as binary data without a filesystem mount. Inventory was limited to OS, disk, driver, and package metadata. [VirtualBox virtual storage](https://docs.oracle.com/en/virtualization/virtualbox/7.2/user/storage.html) · [G26 optical and package evidence](research/lab/LEVEL_2_G26_ZEEK_VERIFICATION.md)
 
-## Candidate pins and evidence
+## Approved candidate inputs
 
-- Freeze SentinelAI at `38f9f7ed8c0a0dc226380ce2cdd5018142d81bbc` and Alembic at `0004_zeek_browsing`. Retain the observed Zeek, Python, and tcpdump versions. Use the published Zeek 8.0 LTS Noble artifacts if the approved bundle includes their packages. Match the OBS signing key to a separately trusted fingerprint before admitting any Zeek artifact.
-- Prefer Noble's PostgreSQL server, client, and `libpq5` at `16.15-0ubuntu0.24.04.1`. Pin server and client common packages at `257build1.1` and `python3.12-venv` at `3.12.3-1ubuntu0.17`, with its Ubuntu bootstrap wheels. PostgreSQL 16 provides the transaction ID and snapshot functions used by SentinelAI. The repository regression gate runs PostgreSQL 18. Verify the migration and worker against the pinned 16.15 build in a separate development environment before freezing the ISO inputs. [PostgreSQL 16 functions](https://www.postgresql.org/docs/16/functions-info.html#FUNCTIONS-PG-SNAPSHOT)
+- Freeze SentinelAI at `38f9f7ed8c0a0dc226380ce2cdd5018142d81bbc` and Alembic at `0004_zeek_browsing`. Retain Zeek, locales, SQLite, the base Python runtime, and tcpdump at their sensor-baseline versions.
+- Use the 11 installation packages and eight coordinated glibc and Perl security upgrades at the versions, sizes, and SHA-256 digests in the sensor manifest. This includes PostgreSQL `16.15-0ubuntu0.24.04.1`, server and client common packages `257build1.1`, and `python3.12-venv` `3.12.3-1ubuntu0.17` with its Ubuntu bootstrap wheels. [Approved sensor transaction](../examples/g37_t4_sensor_transaction.json)
 - For the worker and migration runtime, use the existing roots SQLAlchemy `2.0.45`, Alembic `1.17.2`, psycopg with its binary extra `3.3.2`, and python-dotenv `1.2.4`, with pip `26.3` as the venv installer. The ten-wheel Linux CPython 3.12 closure resolved using only the staged wheels and an empty cache. All staged wheels matched exact filenames, sizes, and SHA-256 values in PyPI release metadata. Run the worker and migration imports on the target ABI during verification. [Hash-checked installation](https://pip.pypa.io/en/stable/topics/secure-installs/)
-- The installed Ubuntu archive key verified Noble Security and Updates `InRelease` signatures. Their SHA-256 entries authenticated the package indexes, and the indexes authenticated all eight staged Ubuntu files. The manifest records the signer and provenance through each file. These files are a partial APT set. Direct checks still identify `ssl-cert`, `libllvm17t64`, and `libjson-perl` outside the staged or installed set. A matching APT resolver must check all versions, alternatives, virtual packages, pre-dependencies, and conflicts. [APT archive authentication](https://manpages.debian.org/bookworm/apt/apt-secure.8.en.html)
+- The Ubuntu archive signature authenticates the original Noble, Updates, and Security indexes. These indexes establish the package hashes independently of the candidate's local APT signature. Changes to the approved transaction or wheelhouse require renewed review. [APT archive authentication](https://manpages.ubuntu.com/manpages/noble/man8/apt-secure.8.html)
 
 ## Disposable installation evidence
 
+The initial eight-package staging set was an input to dependency discovery. The disposable installation used the larger closure below.
+
 The disposable resolver authenticated the Noble base, Updates, and Security indexes at snapshot `20261122T130000Z` against the Ubuntu archive key. The fresh test container allowed only loopback and used local APT files and an empty pip cache. APT installed 45 new packages and upgraded two, with zero removals and recommendations disabled. The 47 authenticated files total 79.84 MiB compressed, with 319.08 MiB of declared installed size including the two replacement files. All ten hash-pinned wheels installed from the staged wheelhouse and passed `pip check`. [Reproducible workflow and evidence](https://github.com/HandlessCoding/SentinelAI/actions/runs/45048690311)
 
-At 1 vCPU and 2 GiB RAM with swap disabled, PostgreSQL 16.15 listened only on `127.0.0.1:5432`. The migration role reached `0004_zeek_browsing`. The worker role lacked schema creation permission and committed one synthetic flow with the independently derived key and timestamp. Restarting PostgreSQL preserved the row and checkpoint. Restarting the worker and appending the same line advanced the checkpoint to 160 bytes and counted one duplicate while retaining one flow. The smoke took 6.56 seconds wall time and 1.97 CPU-seconds, with about 609 MiB peak cgroup memory including file cache. The PostgreSQL data directory and Python environment used 46.05 MiB and 57.35 MiB of apparent space. Live Zeek and pilot capacity still require the approved rehearsal and pilot.
+At 1 vCPU and 2 GiB RAM with swap disabled, PostgreSQL 16.15 listened only on `127.0.0.1:5432`. The migration role reached `0004_zeek_browsing`. The worker role lacked schema creation permission and committed one synthetic flow with the independently derived key and timestamp. Restarting PostgreSQL preserved the row and checkpoint. Restarting the worker and appending the same line advanced the checkpoint to 160 bytes and counted one duplicate while retaining one flow. The smoke took 6.56 seconds wall time and 1.97 CPU-seconds, with about 609 MiB peak cgroup memory including file cache. The PostgreSQL data directory and Python environment used 46.05 MiB and 57.35 MiB of apparent space. Live Zeek and pilot capacity require separate evidence.
 
-## Exact sensor baseline
+## Sensor-baseline APT simulation evidence
 
 The powered-off disk's dpkg status matched the previously recorded inventory byte for byte. All 693 entries were installed, with versions, architectures, and package relationships intact. The read-only extraction recovered APT configuration, sources and preference fragments, and automatic-install state. The dpkg update journal was empty, and no foreign architecture file was present. The disposable Noble amd64 simulation used the same APT and dpkg versions and pointed APT at the recorded status, automatic-install state, and preferences. It replaced the normal Ubuntu and OBS sources with a signed file-only repository and excluded host service hooks. The guest had no network adapter.
 
-The full 47-file offer and reduced 11-file offer both resolve to 11 new installations, zero upgrades, and zero removals. Existing packages meet the dependency constraints. The recommended closure explicitly adds eight coordinated glibc and Perl security upgrades, with no removals or Zeek changes. The simulation acquired all selected files locally. It used a temporary signing key. Use the separately approved signing key for the deliverable repository index.
+The full 47-file offer and reduced 11-file offer both resolve to 11 new installations, zero upgrades, and zero removals. Existing packages meet the dependency constraints. The approved closure adds eight coordinated glibc and Perl security upgrades, with zero removals and zero Zeek changes. The simulation acquired all selected files locally using a temporary key scoped to its simulation repository.
 
 | Package | Recorded sensor | Originally staged | Resolver reason, recommended action, and risk |
 | --- | --- | --- | --- |
@@ -43,18 +121,16 @@ The full 47-file offer and reduced 11-file offer both resolve to 11 new installa
 | `perl-modules-5.38` | `5.38.2-3.2ubuntu0.6` | `5.38.2-3.2ubuntu0.7` | Retained by the provisioning-only solve. The patched interpreter and shared library require at least `.7`. An older module set would fail the dependency constraints. |
 | `libsqlite3-0` | `3.45.1-1ubuntu2.8` | `3.45.1-1ubuntu2.9` | The installed library satisfies Python's dependency. The `.9` package changelog documents a nested-join correctness fix. Retain `.8` for T4 and avoid changing the library used by existing Ubuntu/Python clients. |
 
-The glibc patch also requires matching `libc6-dev` and `libc-dev-bin` because the installed development package uses exact-version dependencies. The recommended Perl transaction includes `perl-base` at `.7` to satisfy its exact dependency. The smaller APT transaction retains the existing Zeek packages and includes no OBS artifacts. The recorded-status simulation verifies package constraints. The separate installation and worker smoke exercise runtime behavior on disposable Ubuntu. Zeek and guest service behavior after the update still needs the authorized rehearsal.
+The glibc patch also requires matching `libc6-dev` and `libc-dev-bin` because the installed development package uses exact-version dependencies. The recommended Perl transaction includes `perl-base` at `.7` to satisfy its exact dependency. The smaller APT transaction retains the existing Zeek packages and includes no OBS artifacts. The recorded-status simulation verifies package constraints. The separate installation and worker smoke exercise runtime behavior on disposable Ubuntu. The simulation addressed package selection. Guest runtime was assessed separately.
 
-The 19-file proposal totals 59.20 MiB of archives and about 169.62 MiB estimated net package growth. The final repeat smoke used the exact proposed revisions with the disposable environment's supporting packages and the unchanged ten-wheel lock. It passed migrations, loopback binding, flow and checkpoint persistence, and duplicate suppression at 1 vCPU and 2 GiB RAM. It used 638.54 MiB peak cgroup memory including cache, 2.01 CPU-seconds and 6.56 seconds wall time. The test covers PostgreSQL and synthetic worker activity. [Final disposable verification](https://github.com/HandlessCoding/SentinelAI/actions/runs/45051441705)
+The approved 19-file transaction totals 59.20 MiB of archives and about 169.62 MiB estimated net package growth. A separate disposable repeat smoke used these revisions with the disposable environment's supporting packages and the unchanged ten-wheel lock. It passed migrations, loopback binding, flow and checkpoint persistence, and duplicate suppression at 1 vCPU and 2 GiB RAM. It used 638.54 MiB peak cgroup memory including cache, 2.01 CPU-seconds and 6.56 seconds wall time. [Final disposable verification](https://github.com/HandlessCoding/SentinelAI/actions/runs/45051441705)
 
-## Before authorizing the ISO build
+## Candidate ISO construction and verification
 
-1. Approve the exact source, wheelhouse, and recommended APT transaction in the sensor manifest. Verify the input hashes against the original authenticated Ubuntu metadata and keep that metadata alongside the file-only repository evidence.
-2. Approve the production bundle signing key and scope it through `Signed-By`. Sign and verify the generated local index with that key. Record the ISO builder/version, file order, volume label, and fixed timestamps before construction.
-3. Record the later rehearsal prerequisites for testing Zeek startup after the glibc update, guest package maintainer scripts and triggers, capture and database free space, and PostgreSQL/worker persistence. The ISO build and the clone rehearsal each require authorization.
+The candidate `SentinelAI-G37-T4-candidate-38f9f7ed.iso` is 80,015,360 bytes with SHA-256 `f236f8efbc63d3c6266baae83eaf59b66f3b4d99b722208e56aaa9fc3e98d5de`. Two assemblies matched byte for byte. An independent ISO reader verified all members. APT 2.8.3 accepted the files extracted from the image, selected the exact 19-package transaction against the recorded baseline, and rejected an incorrect signing fingerprint in a RAM-only simulation.
 
-## Approved-build and later installation checklist
+- Check each APT archive against the approved manifest and the Ubuntu signature-to-index-to-package chain. Check all ten wheel hashes and sizes against the approved manifest. Export the minimum worker and migration source from the pinned Git commit.
+- Sign the file-only APT index with the dedicated candidate key. Scope `Signed-By` to that public keyring and exact fingerprint. Preserve the original Ubuntu evidence, approved input manifest, signing fingerprint, and final ISO digest in protected host storage. Establish the candidate identity from the host records before using the public key carried on the media.
+- Record the pinned ISO builder, volume label, file order, and timestamps. Read the finished ISO as a file, check the complete filesystem against an allowlist, and recompute every digest. Verify the extracted APT metadata and compare a second build from the same frozen inputs byte for byte. Keep the construction and verification evidence with the artifact on the host.
 
-- With build approval, produce the ISO reproducibly. Verify its filesystem listing and every member digest from the resulting image, then hash the complete ISO. Retain the approved manifest and ISO digest in independently trusted storage on the host, outside the ISO.
-- With separate rehearsal authorization, verify the exact ISO digest before attaching it as read-only data media to the disposable clone. Confirm guest compatibility and isolation, resolve only from the mounted repository and wheelhouse, and verify installed versions, source SHA, imports, dependencies, and Alembic revision. Keep PostgreSQL stopped until its loopback-only configuration and local credentials are ready. Verify listener state and a committed benign flow and checkpoint.
-- A failed integrity, isolation, dependency, migration, or ingestion check leaves the pilot stopped. Preserve sanitized evidence and return to the authorized clean baseline before retrying. The rehearsal and live pilot require separate approvals. [Rehearsal acceptance](adr/0002-g37-sensor-local-postgresql.md#required-offline-installation-rehearsal)
+The 100,000-row synthetic benchmark exceeded its 90-second drain window. It provides no verified completion time or capacity result at that size. [Synthetic benchmark evidence](RELIABILITY_TESTING.md#g37-verification-to-implement)

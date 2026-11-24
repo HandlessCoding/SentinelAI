@@ -49,7 +49,7 @@ npm.cmd audit --audit-level=high
 
 | Check | Initial scope and promotion criteria |
 | --- | --- |
-| Pyright standard mode | Database, request limits, and batch processing. The local pilot found three database typing diagnostics, covering the `getaddrinfo` annotation and optional port configuration. Resolve them with boundary tests and reach zero on Windows and Linux before enabling the gate. Standard mode accepts some untyped values. Assess additional files individually. |
+| Pyright standard mode | Database, request limits, and batch processing. Require a zero-diagnostic baseline on Windows and Linux before enabling the CI gate. Assess additional files individually. |
 | Complexity | Report Python backend and TypeScript functions above 10. Start with 3 Python and 11 frontend functions above the threshold. Review each newly introduced or worsened breach. Gate zero new breaches once the baseline can distinguish individual functions across edits. |
 | React exhaustive dependencies | Report the 6 existing warnings where a revision intentionally changes a callback's identity to trigger a reload. Preserve refresh tests before tightening the rule. Gate zero new warnings after recording narrow, reviewed exceptions for intentional triggers. |
 | jscpd exact duplication | Report blocks of at least 6 lines and 50 tokens in the backend and frontend production sources. The initial scan found 0 clones in 23 files. After establishing comparable results on at least three matched CI runs, enforce zero new reviewed production clones using the same options and the base revision. |

@@ -1,6 +1,10 @@
 # Store G37 flows in sensor-local PostgreSQL
 
-**Accepted topology, offline provisioning design, rehearsal prerequisite, and hard acceptance gates.** Bundle preparation, clone creation, media attachment, installation, rehearsal, and pilot execution require separate authorization.
+**Accepted topology and acceptance criteria for the future sensor pilot.**
+Pilot provisioning and capture require separate operator approval. Daily
+development runs on the isolated final VM. Its recorded offline smoke
+does not satisfy the sensor pilot's rehearsal or live validation criteria.
+[Development closeout](../G37_OFFLINE_PROVISIONING.md)
 
 ## Decision and rationale
 
@@ -10,7 +14,8 @@ G36 verified ingestion from recorded replay. The current worker requires local P
 
 ## Offline provisioning
 
-Complete G36.5 after Grill With Docs and before implementing G37. G36.5 covers a comprehensive engineering audit, refactoring, documentation cleanup, and terminology standardization. Freeze the exact SentinelAI commit for the bundle after that work.
+The historical G37 sensor candidate pins the revision after the G36.5
+engineering audit. [Historical candidate evidence](../G37_OFFLINE_PROVISIONING.md#historical-t4-sensor-provisioning)
 
 Deliver one versioned bundle as a read-only VirtualBox ISO if the sensor can mount it while retaining the existing Internal Network configuration. Use a package repository and Python wheel directory on the media. G26 used read-only virtual ISOs and verified Ubuntu 24.04.5 LTS on `amd64` with Zeek 8.0.11. Treat those as baseline evidence. Check the target's actual release, architecture, Python version and wheel ABI, Zeek version, and available disk before selecting bundle pins. [G26 provisioning evidence](../research/lab/LEVEL_2_G26_ZEEK_VERIFICATION.md) · [Lab baseline](../LAB_GUIDE.md#provision-isolated-guests)
 

@@ -72,6 +72,8 @@ records. See the benchmark results below for model evaluation.
 
 ## Local installation
 
+For isolated Ubuntu development, use the [final VM guide](docs/UBUNTU_DEVELOPMENT.md).
+
 The following instructions use Windows PowerShell. Install Python **3.12.3**
 for the original artifact runtime, Node.js **22.12 or newer**, and a local
 PostgreSQL server. PostgreSQL 18.7 was used for the project. Configure the

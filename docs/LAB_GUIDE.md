@@ -7,6 +7,10 @@ benign captures on the same VM pair.
 [Provisioning record](research/lab/LEVEL_2_G26_ZEEK_VERIFICATION.md) ·
 [Collection results](research/lab/LEVEL_2_G27_BENIGN_COLLECTION.md)
 
+The G26 VM pair and its named network are protected research references.
+The procedure below describes that lab topology for separately approved
+research. Daily work uses the [isolated development VM](UBUNTU_DEVELOPMENT.md).
+
 ## Provision isolated guests
 
 1. Use VirtualBox and two Linux guests. G26 verified two Ubuntu 24.04.5 LTS
