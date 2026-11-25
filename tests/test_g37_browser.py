@@ -48,7 +48,7 @@ def dashboard(api):
     os.environ.get("SENTINELAI_G37_BROWSER") == "1", "requires the built dashboard and Chromium"
 )
 class DashboardBrowserTests(PostgreSQLSchemaTestCase):
-    def test_worker_rotation_pagination_and_csv_receipt_in_browser(self):
+    def test_worker_rotation_restart_and_csv_receipt_in_browser(self):
         with (
             TemporaryDirectory() as folder,
             ThreadPoolExecutor(max_workers=2) as pool,
@@ -76,12 +76,22 @@ class DashboardBrowserTests(PostgreSQLSchemaTestCase):
                     check=True,
                     timeout=90,
                 )
-                self.assert_reconciled(log, source.capture_id)
+                committed = self.assert_reconciled(log, source.capture_id, duplicates=0)
+                stop.set()
+                worker.result(timeout=10)
+                replay = log.read_bytes()
+                with log.open("ab") as active:
+                    active.write(replay)
+                stop = Event()
+                worker = pool.submit(run_worker, self.engine, source, stop)
+                self.wait_for_replay(origin, source.capture_id, worker)
+                replayed = self.assert_reconciled(log, source.capture_id, duplicates=1)
+                self.assertCountEqual(replayed, committed)
             finally:
                 stop.set()
                 server.should_exit = True
-                worker.result(timeout=10)
-                serving.result(timeout=10)
+            worker.result(timeout=10)
+            serving.result(timeout=10)
 
     def wait_for_http(self, origin, serving):
         deadline = monotonic() + 10
@@ -97,7 +107,23 @@ class DashboardBrowserTests(PostgreSQLSchemaTestCase):
                     sleep(0.05)
         self.fail("Disposable dashboard server did not start")
 
-    def assert_reconciled(self, log, source_id):
+    def wait_for_replay(self, origin, source_id, worker):
+        deadline = monotonic() + 10
+        with httpx.Client(base_url=origin, trust_env=False, timeout=1) as client:
+            while monotonic() < deadline:
+                if worker.done():
+                    worker.result()
+                    self.fail("Worker stopped before replay committed")
+                response = client.get("/api/traffic/monitoring")
+                response.raise_for_status()
+                for source in response.json()["sources"]:
+                    if source["capture_id"] == source_id and source["duplicate_rows"] == 1:
+                        self.assertEqual(source["backlog_bytes"], 0)
+                        return
+                sleep(0.05)
+        self.fail("API did not observe the replay count after worker restart")
+
+    def assert_reconciled(self, log, source_id, *, duplicates):
         retained = log.with_suffix(".log.1")
         archive = retained.stat()
         expected = {
@@ -107,13 +133,29 @@ class DashboardBrowserTests(PostgreSQLSchemaTestCase):
         }
         with Session(self.engine) as reader:
             state = reader.get(ZeekStream, source_id)
-            rows = reader.execute(select(ZeekFlow.stream_key, ZeekFlow.ground_truth)).all()
+            rows = reader.execute(
+                select(
+                    ZeekFlow.id,
+                    ZeekFlow.capture_id,
+                    ZeekFlow.stream_key,
+                    ZeekFlow.source_file,
+                    ZeekFlow.source_offset,
+                    ZeekFlow.ground_truth,
+                )
+            ).all()
         self.assertEqual(len(expected), 32)
-        self.assertCountEqual(rows, [(key, "unknown") for key in expected])
+        self.assertCountEqual(
+            [(row.capture_id, row.stream_key, row.ground_truth) for row in rows],
+            [(source_id, key, "unknown") for key in expected],
+        )
         self.assertEqual(state.last_drained_file, f"{archive.st_dev:x}:{archive.st_ino:x}")
         self.assertEqual((state.byte_offset, state.backlog_bytes), (log.stat().st_size, 0))
+        self.assertEqual(
+            (state.rows_seen, state.duplicate_rows, state.rejected_rows), (32 + duplicates, duplicates, 0)
+        )
         self.assertEqual(self.count(PredictionBatch), 3)
         self.assertEqual(self.count(Alert), 6)
+        return rows
 
     def seed_historical_receipt(self, csv):
         records = [dict(record, dur=str(index + 100)) for index, record in enumerate(oversized_csv_records())]
