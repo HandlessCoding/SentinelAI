@@ -8,10 +8,16 @@ test "$VERSION_CODENAME" = noble
 test "$(ls /sys/class/net)" = lo
 awk 'NR > 1 {exit 1}' /proc/net/route
 printf 'Ubuntu %s amd64, loopback only, no IPv4 routes\n' "$VERSION_ID"
-sha256sum /recorded/status /recorded/extended_states
+# Verify the recorded package-state inputs before comparing the offers.
+sha256sum --check --strict <<'EOF'
+7c8fad4ab8896fb66e343cb72d59d06f6af9ee53e04b70b2a47f203ae86aa11b  /recorded/status
+3488d542f15f605b37efe9e23e67676f74050f31d11d65a2fab5d1ae6f17fd65  /recorded/extended_states
+EOF
 test "$(grep -c '^Status: install ok installed$' /recorded/status)" -eq 693
 dpkg-query --admindir=/recorded -W -f='${Package}\t${Version}\t${Architecture}\n' apt dpkg
-apt-get --version | head -n 1
+apt_version=$(apt-get --version | awk 'NR == 1 { version = $2 } END { print version }')
+test "$apt_version" = 2.8.3
+test "$(dpkg-query -W -f='${Version}' dpkg)" = 1.22.6ubuntu6.6
 
 mapfile -t roots < /recorded/apt-roots
 work=$(mktemp -d)
@@ -44,15 +50,20 @@ run_simulation() {
   apt-get --simulate --no-remove install "${roots[@]}" "$@" | tee "$work/transaction"
 }
 
+verify_provisioning() {
+  if grep -Eq '^Remv |^Inst [^ ]+ \[|^Inst zeek' "$work/transaction"; then
+    printf 'Unexpected package upgrade, removal, or Zeek change\n' >&2
+    exit 1
+  fi
+  sed -n 's/^Inst \([^ ]*\) (\([^ ]*\) .*/\1=\2/p' "$work/transaction" | sort > "$work/actual"
+  sort /recorded/minimal-pins > "$work/expected"
+  diff -u "$work/expected" "$work/actual"
+}
+
 run_simulation all
+verify_provisioning
 run_simulation minimal
-if grep -Eq '^Remv |^Inst [^ ]+ \[|^Inst zeek' "$work/transaction"; then
-  printf 'Unexpected package upgrade, removal, or Zeek change\n' >&2
-  exit 1
-fi
-sed -n 's/^Inst \([^ ]*\) (\([^ ]*\) .*/\1=\2/p' "$work/transaction" | sort > "$work/actual"
-sort /recorded/minimal-pins > "$work/expected"
-diff -u "$work/expected" "$work/actual"
+verify_provisioning
 apt-get --assume-yes --download-only --no-remove install "${roots[@]}"
 printf '\nG37_SENSOR_SIM_PASS\n'
 

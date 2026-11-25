@@ -4,16 +4,9 @@ Use **SentinelAI-Ubuntu-Final** for Ubuntu development. Start that VM from
 VirtualBox Manager and use its console. All eight network adapters are disabled.
 The guest has 2 vCPUs, 4 GiB of RAM, and a 32 GiB dynamically allocated VDI.
 
-| Role | VirtualBox machine UUID | Attached VDI UUID |
-| --- | --- | --- |
-| Development | `ffacb360-9283-4210-ab9a-3f9c217907ca` | `a3027b9b-9faf-444a-9cad-aeac047a401a` |
-| Recovery only | `4b482edf-6b7c-4afc-aa22-43787a5bf0e5` | `6fd8f0c7-94ff-41c4-bc03-ad01cb276982` |
-
-The development disk is under `data/development-vm/SentinelAI-Ubuntu-Final/`.
-The backup `SentinelAI-Ubuntu-Backup` is under `D:/vmMachines/`, outside the
-checkout. VirtualBox reports distinct base VDIs with no parent disk. Both
-machines currently reference the same read-only v3 DVD. Keep that media at
-its recorded path. Restoration from the backup remains untested.
+The development and recovery machines use distinct base disks. Retain the
+recovery copy and read-only installer media identified in the protected
+host inventory. Restoration from the backup remains untested.
 
 ## Daily use
 
