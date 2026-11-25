@@ -46,9 +46,13 @@ jobs:
           python -m pip check
       - name: Check Python lint and adopted formatting
         run: |
-          python -m ruff check backend migrations ml tests verification
+          python -m ruff check backend migrations ml tests verification tools/herdr
           python -m ruff format --check backend/database.py tests/test_database.py
           python -m ruff format --check verification tests/test_g37_verification.py tests/test_g37_browser.py tests/test_g37_benchmark.py
+      - name: Check the local Herdr supervisor
+        run: |
+          python -m ruff format --check tools/herdr
+          python -B -m unittest discover -s tools/herdr -v
       - name: Report backend complexity above 10
         run: python -m ruff check --select C901 --exit-zero backend
       - name: Report Python advisories for installed dependencies

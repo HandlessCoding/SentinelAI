@@ -19,10 +19,19 @@ edits. Treat any new enabled diagnostic as a failed check.
 
 ```powershell
 & .\.venv\Scripts\python.exe -m pip install --only-binary=:all: -r requirements-dev.txt
-& .\.venv\Scripts\python.exe -m ruff check backend migrations ml tests
+& .\.venv\Scripts\python.exe -m ruff check backend migrations ml tests verification tools/herdr
 & .\.venv\Scripts\python.exe -m ruff format --check backend/database.py tests/test_database.py
 & .\.venv\Scripts\python.exe -m ruff check --select C901 --exit-zero backend
 & .\.venv\Scripts\python.exe -m pip_audit --progress-spinner off --timeout 15
+```
+
+Run the Herdr controller tests with Python 3.12 before submitting controller
+changes. The suite uses simulated CLI responses and a temporary SQLite database,
+so it runs without live agents or provider access.
+
+```powershell
+& .\.venv\Scripts\python.exe -m ruff format --check tools/herdr
+& .\.venv\Scripts\python.exe -B -m unittest discover -s tools/herdr -v
 ```
 
 ## TypeScript and React
