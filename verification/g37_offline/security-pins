@@ -1,0 +1,8 @@
+libc6=2.39-0ubuntu8.12
+libc-bin=2.39-0ubuntu8.12
+libc6-dev=2.39-0ubuntu8.12
+libc-dev-bin=2.39-0ubuntu8.12
+perl=5.38.2-3.2ubuntu0.7
+libperl5.38t64=5.38.2-3.2ubuntu0.7
+perl-modules-5.38=5.38.2-3.2ubuntu0.7
+perl-base=5.38.2-3.2ubuntu0.7

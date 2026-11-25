@@ -41,8 +41,9 @@ class DatabaseBoundaryTests(unittest.TestCase):
         self.assertEqual(params["port"], 55432)
 
     def test_localhost_rejects_nonloopback_empty_and_failed_resolution(self):
-        answers = [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("192.0.2.1", 5432))]
-        for result in (answers, [], OSError("fixture lookup failure")):
+        external = (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("192.0.2.1", 5432))
+        loopback = (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("127.0.0.1", 5432))
+        for result in ([loopback, external], [], OSError("fixture lookup failure")):
             with self.subTest(result=result), patch("socket.getaddrinfo") as lookup:
                 if isinstance(result, OSError):
                     lookup.side_effect = result
@@ -50,6 +51,12 @@ class DatabaseBoundaryTests(unittest.TestCase):
                     lookup.return_value = result
                 with self.assertRaisesRegex(DatabaseConfigurationError, "loopback"):
                     self.connection_parameters("localhost")
+
+    def test_missing_port_defaults_but_valueless_dotenv_port_is_rejected(self):
+        self.assertEqual(database_url().port, 5432)
+        with patch("backend.database.dotenv_values", return_value={"SENTINELAI_DB_PORT": None}):
+            with self.assertRaisesRegex(DatabaseConfigurationError, "valid PostgreSQL port"):
+                database_url()
 
     def test_connection_policy_rejects_other_hosts_and_invalid_ports(self):
         for host in ("db.example", "0.0.0.0", "::", "127.0.0.1,192.0.2.1", "[::1]", "::1%1"):

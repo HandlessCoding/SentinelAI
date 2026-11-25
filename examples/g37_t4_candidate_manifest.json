@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "status": "candidate_apt_closure_pending_iso_build_not_authorized",
+  "inventory_date": "2026-11-22",
+  "source_commit": "38f9f7ed8c0a0dc226380ce2cdd5018142d81bbc",
+  "alembic_revision": "0004_zeek_browsing",
+  "target": {
+    "ubuntu": "24.04.5 LTS",
+    "suite": "noble",
+    "dpkg_architecture": "amd64",
+    "glibc": "2.39-0ubuntu8.9",
+    "python": "3.12.3",
+    "python_deb": "3.12.3-1ubuntu0.17",
+    "python_soabi": "cpython-312-x86_64-linux-gnu",
+    "vcpus": 1,
+    "ram_mib": 2048,
+    "virtual_disk_bytes": 10737418240,
+    "root_partition_bytes": 9662610432,
+    "root_free_bytes_offline": 6807810048,
+    "kernel": "6.8.0-147-generic"
+  },
+  "baseline_packages": {
+    "tcpdump": "4.99.4-3ubuntu4.24.04.1",
+    "zeek-8.0": "1:8.0.11-0",
+    "zeek-8.0-btest": "1:8.0.11-0",
+    "zeek-8.0-btest-data": "1:8.0.11-0",
+    "zeek-8.0-client": "1:8.0.11-0",
+    "zeek-8.0-core": "1:8.0.11-0",
+    "zeek-8.0-core-dev": "1:8.0.11-0",
+    "zeek-8.0-spicy-dev": "1:8.0.11-0",
+    "zeek-8.0-zkg": "1:8.0.11-0",
+    "zeekctl-8.0": "1:8.0.11-0"
+  },
+  "ubuntu_index_signer": "F6ECB3762474EDA9D21B7022871920D1991BC93C",
+  "verified_ubuntu_releases": [
+    {
+      "source": "https://archive.ubuntu.com/ubuntu/dists/noble-security/InRelease",
+      "sha256": "93c9d1d7a1898aafb79c5729e4805f857c194dcc939eb913ea76684d2f6230de"
+    },
+    {
+      "source": "https://archive.ubuntu.com/ubuntu/dists/noble-updates/InRelease",
+      "sha256": "42f3c1180ad0e1c0cb8ccfa2edfdb6eb631a2d3680cc5015ee0b93d6b68dbad1"
+    }
+  ],
+  "verified_deb_candidates_incomplete": [
+    {
+      "name": "libpq5",
+      "version": "16.15-0ubuntu0.24.04.1",
+      "architecture": "amd64",
+      "path": "libpq5_16.15-0ubuntu0.24.04.1_amd64.deb",
+      "bytes": 151262,
+      "sha256": "3f96dd36bcd7841172c1ead4965da20a193bb9ccf9a93a3f5a3ac7f56369dbb1",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-16/libpq5_16.15-0ubuntu0.24.04.1_amd64.deb",
+      "suite": "noble-security",
+      "component": "main"
+    },
+    {
+      "name": "postgresql-16",
+      "version": "16.15-0ubuntu0.24.04.1",
+      "architecture": "amd64",
+      "path": "postgresql-16_16.15-0ubuntu0.24.04.1_amd64.deb",
+      "bytes": 15610426,
+      "sha256": "d60ae76fb862cd4cca7bfdcdcdcc271c5e1d75f6b7915305ce2d962735a4b666",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-16/postgresql-16_16.15-0ubuntu0.24.04.1_amd64.deb",
+      "suite": "noble-security",
+      "component": "main"
+    },
+    {
+      "name": "postgresql-client-16",
+      "version": "16.15-0ubuntu0.24.04.1",
+      "architecture": "amd64",
+      "path": "postgresql-client-16_16.15-0ubuntu0.24.04.1_amd64.deb",
+      "bytes": 1301302,
+      "sha256": "4796f72e1a7270ad8c17b1ecb025cd453f692b42c10aaf89f6b476da61761eac",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-16/postgresql-client-16_16.15-0ubuntu0.24.04.1_amd64.deb",
+      "suite": "noble-security",
+      "component": "main"
+    },
+    {
+      "name": "postgresql-client-common",
+      "version": "257build1.1",
+      "architecture": "all",
+      "path": "postgresql-client-common_257build1.1_all.deb",
+      "bytes": 36410,
+      "sha256": "696255bc15e9736edfcb8f7d0309deaf35d761233bd26e2db14d2ae8660a9602",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-common/postgresql-client-common_257build1.1_all.deb",
+      "suite": "noble-updates",
+      "component": "main"
+    },
+    {
+      "name": "postgresql-common",
+      "version": "257build1.1",
+      "architecture": "all",
+      "path": "postgresql-common_257build1.1_all.deb",
+      "bytes": 161444,
+      "sha256": "5363ba39f18ede7f54776d41356d7dd6e859d089ee0092096050500c9d4413f5",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/main/p/postgresql-common/postgresql-common_257build1.1_all.deb",
+      "suite": "noble-updates",
+      "component": "main"
+    },
+    {
+      "name": "python3-pip-whl",
+      "version": "24.0+dfsg-1ubuntu1.3",
+      "architecture": "all",
+      "path": "python3-pip-whl_24.0+dfsg-1ubuntu1.3_all.deb",
+      "bytes": 1706638,
+      "sha256": "4b7c50db8f261b208c1d9cde8db148c1f682cc516957b986ada5088cfcee1359",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/universe/p/python-pip/python3-pip-whl_24.0+dfsg-1ubuntu1.3_all.deb",
+      "suite": "noble-security",
+      "component": "universe"
+    },
+    {
+      "name": "python3-setuptools-whl",
+      "version": "68.1.2-2ubuntu1.2",
+      "architecture": "all",
+      "path": "python3-setuptools-whl_68.1.2-2ubuntu1.2_all.deb",
+      "bytes": 716284,
+      "sha256": "edfa94cc1f6a33af99cfaf6ebfe35dbcd9c4bdd8555b90c0d8e78479faf5c8f0",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/universe/s/setuptools/python3-setuptools-whl_68.1.2-2ubuntu1.2_all.deb",
+      "suite": "noble-security",
+      "component": "universe"
+    },
+    {
+      "name": "python3.12-venv",
+      "version": "3.12.3-1ubuntu0.17",
+      "architecture": "amd64",
+      "path": "python3.12-venv_3.12.3-1ubuntu0.17_amd64.deb",
+      "bytes": 5684,
+      "sha256": "b8d4bfea3df63945b6a202bd0773caf7727dde86d2df91df6e88a8ccf7c18b7e",
+      "source": "https://archive.ubuntu.com/ubuntu/pool/universe/p/python3.12/python3.12-venv_3.12.3-1ubuntu0.17_amd64.deb",
+      "suite": "noble-security",
+      "component": "universe"
+    }
+  ],
+  "wheel_target": "x86_64-manylinux_2_39, CPython 3.12, wheel only",
+  "wheel_resolver": "uv 0.13.9",
+  "wheel_roots": [
+    "alembic==1.17.2",
+    "pip==26.3",
+    "psycopg[binary]==3.3.2",
+    "python-dotenv==1.2.4",
+    "SQLAlchemy==2.0.45"
+  ],
+  "verified_wheel_candidates": [
+    {
+      "name": "alembic",
+      "version": "1.17.2",
+      "path": "alembic-1.17.2-py3-none-any.whl",
+      "bytes": 248554,
+      "sha256": "f483dd1fe93f6c5d49217055e4d15b905b425b6af906746abb35b69c1996c4e6",
+      "source": "https://files.pythonhosted.org/packages/ba/88/6237e97e3385b57b5f1528647addea5cc03d4d65d5979ab24327d41fb00d/alembic-1.17.2-py3-none-any.whl"
+    },
+    {
+      "name": "greenlet",
+      "version": "3.5.6",
+      "path": "greenlet-3.5.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl",
+      "bytes": 621404,
+      "sha256": "975736b002ed080d124cf81a79cb7e05cb26d6b3f5c7a7b651c0fcce70353aa1",
+      "source": "https://files.pythonhosted.org/packages/66/6a/1594f3869c57c149abdb380492529e04d4c0229b5e4d79572c5bd0aaa673/greenlet-3.5.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl"
+    },
+    {
+      "name": "Mako",
+      "version": "1.4.3",
+      "path": "mako-1.4.3-py3-none-any.whl",
+      "bytes": 80164,
+      "sha256": "723296007c870bfd6b3f0c3230dba7198096e5269297ebf5e4eff9e7ffa39d4f",
+      "source": "https://files.pythonhosted.org/packages/6d/a0/053d6af3e8f871e0073b4a36732d9e65be77a72e5434c31b94f6af78a6bb/mako-1.4.3-py3-none-any.whl"
+    },
+    {
+      "name": "MarkupSafe",
+      "version": "3.0.4",
+      "path": "markupsafe-3.0.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "bytes": 22985,
+      "sha256": "8e124f974786f831d6043728e38296969d3579db8896fe004682f5758e613581",
+      "source": "https://files.pythonhosted.org/packages/4f/a7/aeedb5140afa41fc74c225e9184ab96723a6e873b6ee1c9fede7283456d8/markupsafe-3.0.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+    },
+    {
+      "name": "pip",
+      "version": "26.3",
+      "path": "pip-26.3-py3-none-any.whl",
+      "bytes": 1950951,
+      "sha256": "f3b60b20ffaadd4415ed7957212a38ac63fa4c5fa375bd0f4a797777940fad13",
+      "source": "https://files.pythonhosted.org/packages/07/25/ee8c38ae72d66b844ce8eb9711ba905dba21ca1a8a0c960057c41cd23337/pip-26.3-py3-none-any.whl"
+    },
+    {
+      "name": "psycopg",
+      "version": "3.3.2",
+      "path": "psycopg-3.3.2-py3-none-any.whl",
+      "bytes": 212774,
+      "sha256": "3e94bc5f4690247d734599af56e51bae8e0db8e4311ea413f801fef82b14a99b",
+      "source": "https://files.pythonhosted.org/packages/8c/51/2779ccdf9305981a06b21a6b27e8547c948d85c41c76ff434192784a4c93/psycopg-3.3.2-py3-none-any.whl"
+    },
+    {
+      "name": "psycopg-binary",
+      "version": "3.3.2",
+      "path": "psycopg_binary-3.3.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "bytes": 5132731,
+      "sha256": "d45acedcaa58619355f18e0f42af542fcad3fd84ace4b8355d3a5dea23318578",
+      "source": "https://files.pythonhosted.org/packages/a6/62/513c80ad8bbb545e364f7737bf2492d34a4c05eef4f7b5c16428dc42260d/psycopg_binary-3.3.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl"
+    },
+    {
+      "name": "python-dotenv",
+      "version": "1.2.4",
+      "path": "python_dotenv-1.2.4-py3-none-any.whl",
+      "bytes": 23266,
+      "sha256": "42269a8a5b3fd54ffa6f3d84b18abed50064717576b4ecf03dc4a55d8aa04fdc",
+      "source": "https://files.pythonhosted.org/packages/60/d1/38f3a3405989a89ac18390803e70c6ad7c7760da4f9b83cbeca0c44a0c72/python_dotenv-1.2.4-py3-none-any.whl"
+    },
+    {
+      "name": "SQLAlchemy",
+      "version": "2.0.45",
+      "path": "sqlalchemy-2.0.45-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "bytes": 3348268,
+      "sha256": "ba547ac0b361ab4f1608afbc8432db669bd0819b3e12e29fb5fa9529a8bba81d",
+      "source": "https://files.pythonhosted.org/packages/0a/93/3be94d96bb442d0d9a60e55a6bb6e0958dd3457751c6f8502e56ef95fed0/sqlalchemy-2.0.45-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "path": "typing_extensions-4.16.0-py3-none-any.whl",
+      "bytes": 45571,
+      "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+      "source": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl"
+    }
+  ]
+}

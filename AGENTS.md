@@ -2,8 +2,10 @@
 
 ## Project context
 
+- Use [SentinelAI-Ubuntu-Final](docs/UBUNTU_DEVELOPMENT.md) for Ubuntu development and keep its backup for recovery. Keep the G26 guests as protected research references. Use the normal VirtualBox console for startup and shutdown.
+
 - Read [GLOSSARY.md](GLOSSARY.md) and relevant [architecture decisions](docs/adr/) before working on the domain. Use the glossary's terms and surface conflicts with existing decisions.
-- Use the [documentation index](docs/README.md) to find setup and operational guides. Read the [architecture](docs/ARCHITECTURE.md) for system boundaries, the [roadmap](docs/ROADMAP.md) for milestone status, and the [research archive](docs/research/README.md) for evidence and limitations. Use the [lab guide](docs/LAB_GUIDE.md) for authorized lab procedures.
+- Start with the [documentation index](docs/README.md). It points to the architecture, current roadmap, coding and testing standards, and authorized lab procedures.
 
 ## Engineering and testing
 
@@ -16,6 +18,12 @@
 ## Major milestone workflow
 
 Use the installed skills for the applicable stages of major milestones. Get explicit approval before advancing to the next major stage. Keep routine changes proportionate. Use this file, the glossary, approved ADRs, architecture docs, and relevant research as inputs throughout.
+
+Engineering safeguards should address a concrete risk at the point it arises.
+Use ordinary development checks for routine, reversible work. For VM or
+offline package changes, verify actual isolation, applicable artifact identity,
+and the target's dependency transaction. Require additional gates only where
+they protect a documented boundary or recovery need.
 
 1. **Grill With Docs.** Use `grill-with-docs`, `grilling`, and `domain-modeling` to challenge requirements and compare alternatives one important decision at a time. Record agreed decisions in the relevant ADR. Update the glossary when terminology needs clarification.
 2. **To Spec.** Use `to-spec` to describe scope, interfaces, risks, acceptance criteria, and required tests. Use `setup-matt-pocock-skills` to configure the issue tracker before publishing specs or tickets if the tracker setup is pending.

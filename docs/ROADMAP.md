@@ -16,7 +16,23 @@
   recovery, and source health in Network Traffic. Recorded replay verified
   this path. The isolated live pilot is planned. [G36 replay verification](LAB_GUIDE.md#g36-continuous-replay-verification)
 
-## Proposed next research step
+## Current milestone and next step
+
+**Offline development setup is complete.** SentinelAI-Ubuntu-Final
+demonstrated offline PostgreSQL and Zeek setup, Python application startup,
+migrations, health, and synthetic ingestion with restart persistence and
+duplicate replay protection. The v4 installer has media verification. A
+fresh install from v4, backup restore, and native live detection are pending.
+[Milestone evidence](G37_OFFLINE_PROVISIONING.md)
+
+**Recommended next milestone:** verify the installed development workflow
+end to end with synthetic input, from the migrated guest database and worker
+through the API and browser. Close the recovery-media gap at the next
+approved recovery exercise. Consider the separate passive live pilot after
+the operator approves its environment and the open sensor gates.
+[Regression workflow](RELIABILITY_TESTING.md) · [Sensor pilot gates](adr/0002-g37-sensor-local-postgresql.md)
+
+## Deferred research
 
 **G28 physical-environment validation is deferred.** Preflight confirmed the
 G26 sensor/client VM pair on one physical host and the original `sensor-lab0`
@@ -82,13 +98,10 @@ the dashboard. [Capture evaluation gates](research/level-2/LEVEL_2_CAPTURE_DATA_
 
 ## Engineering follow-up
 
-### G36.5 engineering audit before G37
-
-Grill With Docs for G37 is complete. G36.5 work is tracked in the [codebase audit and ticket plan](G36_5_CODEBASE_AUDIT.md) and follows the [major milestone workflow](../AGENTS.md#major-milestone-workflow). Complete G36.5 and obtain approval before implementing the [G37 isolated pilot](adr/0002-g37-sensor-local-postgresql.md).
-
-Audit G1 through G36 across the backend and frontend, PostgreSQL schemas and API contracts, Zeek ingestion and capture processing, ML pipelines and feature and evaluation contracts, security, dependencies, tests, CI, and documentation. Look for dead or duplicated code, unnecessary complexity, and outdated or contradictory docs. Use the [glossary](../GLOSSARY.md) to reconcile terminology while preserving distinct concepts. Prioritize changes with clear engineering benefits and verification.
-
-Preserve the frozen Level 1 model and sealed datasets. G28 independent-environment validation remains deferred, and G29 live attack collection remains blocked.
+The [G36.5 codebase audit](G36_5_CODEBASE_AUDIT.md) records the review that
+preceded the G37 offline work. Use [coding standards](CODING_STANDARDS.md)
+and the [major milestone workflow](../AGENTS.md#major-milestone-workflow)
+for future changes.
 
 Agree on a repository license.
 Stable alert pagination and cross-platform dependency locking can follow

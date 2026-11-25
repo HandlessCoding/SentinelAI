@@ -20,9 +20,15 @@ def _loopback_addresses(host: str) -> list[str]:
         return [host]
     try:
         answers = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM, proto=socket.IPPROTO_TCP)
-        addresses = list(dict.fromkeys(answer[4][0] for answer in answers))
-        if addresses and all(ip_address(address).is_loopback for address in addresses):
-            return addresses
+        addresses: dict[str, None] = {}
+        for _, _, _, _, sockaddr in answers:
+            address = sockaddr[0]
+            if not isinstance(address, str) or not ip_address(address).is_loopback:
+                break
+            addresses[address] = None
+        else:
+            if addresses:
+                return list(addresses)
     except (OSError, ValueError):
         pass
     raise DatabaseConfigurationError("PostgreSQL localhost must resolve exclusively to loopback addresses")
@@ -45,10 +51,13 @@ def database_url(*, testing=False):
     if testing and database == development_db:
         raise DatabaseConfigurationError("Use a dedicated test database different from development")
     try:
-        port = int(value("PORT", "5432"))
+        port_setting = value("PORT", "5432")
+        if port_setting is None:
+            raise ValueError
+        port = int(port_setting)
         if not 1 <= port <= 65535:
             raise ValueError
-    except (TypeError, ValueError) as error:
+    except ValueError as error:
         raise DatabaseConfigurationError("Configure a valid PostgreSQL port") from error
     addresses = _loopback_addresses(host)
     # An explicit numeric address prevents libpq environment/service defaults

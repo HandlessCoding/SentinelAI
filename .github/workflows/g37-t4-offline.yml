@@ -1,0 +1,43 @@
+name: G37 T4 disposable offline verification
+
+on:
+  push:
+    branches: [verification/g37-t4-offline]
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Stage authenticated packages on the resolver
+        run: |
+          source_sha=$(python3 -c 'import json; print(json.load(open("examples/g37_t4_candidate_manifest.json"))["source_commit"])')
+          git fetch --depth=1 origin "$source_sha"
+          test "$(git rev-parse FETCH_HEAD)" = "$source_sha"
+          mkdir "$RUNNER_TEMP/g37-source" "$RUNNER_TEMP/g37-stage"
+          git archive "$source_sha" backend ml migrations verification/g37.py alembic.ini |
+            tar -x -C "$RUNNER_TEMP/g37-source"
+          python3 verification/g37_offline/stage.py "$RUNNER_TEMP/g37-stage"
+          image=ubuntu@sha256:9c7f200c07e3d4a03e7249d2c16bf66a51120fb876aa2242cf31451412543289
+          docker pull --platform linux/amd64 "$image"
+          printf 'G37_CONTAINER_IMAGE %s\n' "$image"
+          printf 'G37_IMAGE=%s\n' "$image" >> "$GITHUB_ENV"
+          docker run --rm --pull never --platform linux/amd64 \
+            --mount "type=bind,src=$RUNNER_TEMP/g37-stage,dst=/stage" \
+            --mount "type=bind,src=$PWD/verification/g37_offline,dst=/harness,readonly" \
+            --mount "type=bind,src=/etc/ssl/certs/ca-certificates.crt,dst=/host-ca.pem,readonly" \
+            "$image" bash /harness/resolve.sh
+      - name: Install and verify with only loopback under sensor resource limits
+        run: |
+          docker run --rm --pull never --platform linux/amd64 --network none \
+            --cpus 1 --memory 2g --memory-swap 2g \
+            --mount "type=bind,src=$RUNNER_TEMP/g37-stage,dst=/stage,readonly" \
+            --mount "type=bind,src=$RUNNER_TEMP/g37-source,dst=/sentinelai,readonly" \
+            --mount "type=bind,src=$PWD/verification/g37_offline,dst=/harness,readonly" \
+            "$G37_IMAGE" bash /harness/install.sh
