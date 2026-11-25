@@ -62,7 +62,7 @@ The original 100,000-row synthetic tier exceeded its 90-second drain observation
 | CSV retry and historical receipts | Use a fixed CSV containing a batch split by the JSON byte cap. Commit one batch and drop its response at a local test adapter. Retry the same upload and assert stable keys, exactly one stored receipt per committed batch, unchanged alert IDs, and completion of the remaining records. Exercise a legacy receipt from an oversized original row window, plus an altered payload at a reused key returning 409. Verify the final browser result and persistent state. |
 | Accessibility and keyboard | Run axe in the browser for Traffic, CSV, Alerts, and Incidents, with zero unresolved serious or critical violations in these flows. Use Tab, Shift+Tab, Enter, and Escape to verify skip navigation, menu operation, visible focus, labels, status announcements, and focus return from detail views. Exercise desktop and a narrow viewport. |
 
-Use synthetic fixtures, a database created for the test, explicit waits on committed observations, and controlled response failures. Save expected keys and counts, migration revision, test/browser versions, sanitized logs, and timing traces. Existing Python and component tests cover individual boundaries. These proposed vertical and browser tests would verify their integration. [Existing Python integration cases](../tests/test_zeek_stream.py) · [Existing browser-component cases](../frontend/src/reliability.test.tsx)
+Use synthetic fixtures, a database created for the test, explicit waits on committed observations, and controlled response failures. Save expected keys and counts, migration revision, test/browser versions, sanitized logs, and timing traces. The existing Chromium harness covers synthetic ingestion, pagination, and CSV retry. Python tests cover worker recovery. Use the acceptance cases above to track additional browser coverage and separately authorized pilot checks. [Existing Python integration cases](../tests/test_zeek_stream.py) · [Existing browser-component cases](../frontend/src/reliability.test.tsx)
 
 ### Reproducible benchmark baseline
 
@@ -74,6 +74,19 @@ Use synthetic fixtures, a database created for the test, explicit waits on commi
 ### Independent Security review
 
 Use the Security perspective for changes to input validation, authentication or authorization, deserialization, artifact identity, database or filesystem access, ingestion, dependencies, secrets, or isolation. Review the authorized observation boundary, effective database destination, migration privileges, untrusted log and CSV handling, retry integrity, and evidence redaction. Cite the affected interface, realistic reachability, impact, and a regression test or other verification for each finding. Use disposable local fixtures and honor the [human-first review gate](../AGENTS.md#human-first-review-gate).
+
+## G38 synthetic application verification
+
+The existing Chromium harness exercises the built dashboard, loopback
+FastAPI, the application worker, and a freshly migrated disposable
+PostgreSQL schema. The flow detail in the browser is checked against its API
+response and fixture provenance. After the browser exercise, the harness stops
+the worker, appends a duplicate to the active log, and restarts the same source.
+It checks the API duplicate count and reads the durable checkpoint and flow
+identities through an independent database session. Use the existing browser
+reproduction command above. A run on an installed development guest must
+record the guest revision and environment separately. The disposable harness
+uses synthetic input and an injected scoring fixture.
 
 ## Recover a saved G32.2 report
 

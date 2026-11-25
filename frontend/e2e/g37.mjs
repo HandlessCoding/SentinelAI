@@ -79,10 +79,33 @@ async function traffic(page) {
   const newest = flowTable.getByRole('row').filter({ hasText: '40032' }).getByRole('link')
   await expect(newest).toBeVisible()
   await expect(flowTable.getByRole('cell', { name: '192.0.2.1:40031' })).toBeVisible()
+  const href = await newest.getAttribute('href')
+  assert.match(href, /^#traffic\/[0-9a-f-]+$/)
+  const id = href.split('/')[1]
   await newest.focus()
-  await page.keyboard.press('Enter')
+  const [response] = await Promise.all([
+    page.waitForResponse((result) => new URL(result.url()).pathname === '/api/traffic/flows/' + id),
+    page.keyboard.press('Enter'),
+  ])
+  assert.ok(response.ok())
+  const persisted = await response.json()
+  assert.deepEqual(
+    [persisted.id, persisted.orig_port, persisted.resp_port, persisted.source, persisted.ground_truth],
+    [id, 40032, 443, 'connected_sensor', 'unknown'],
+  )
+  assert.equal(persisted.capture_id, 'g37-browser')
+  assert.equal(persisted.capture.observation_point, 'fixture')
   const detail = page.getByRole('complementary', { name: 'Flow details' })
-  await expect(detail).toContainText('40032')
+  await expect(detail).toContainText('192.0.2.1:40032')
+  await expect(detail).toContainText('Reviewed ground truth')
+  await expect(detail).toContainText('Unknown')
+  const fact = (label) =>
+    detail
+      .locator('dl > div')
+      .filter({ has: page.getByText(label, { exact: true }) })
+      .locator('dd')
+  await expect(fact('Observation point')).toHaveText('fixture')
+  await expect(fact('Ingestion source ID')).toHaveText('g37-browser')
   await expect(page.getByRole('link', { name: 'Close flow details' })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(detail).toBeHidden()
